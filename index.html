@@ -3,68 +3,489 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>족집게(JokZip) 데모</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <title>Smart Study: 족보 & 강의 연동 시스템</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Pretendard', sans-serif; }
+        :root {
+            --primary: #5c6bc0;       /* 메인 컬러 */
+            --secondary: #e8eaf6;     /* 배경 컬러 */
+            --accent-jokbo: #2ecc71;  /* 족보 매칭 컬러 (초록색, 이미지 참고) */
+            --accent-ai: #ff9800;     /* AI 답변 컬러 */
+            --text-dark: #333;
+            --border: #ddd;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            height: 100vh;
+            display: flex;
+            background-color: #f0f2f5;
+            overflow: hidden;
+        }
+
+        /* --- 왼쪽: 강의록 뷰어 (PDF 시뮬레이션) --- */
+        .viewer-section {
+            flex: 1.5;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        .pdf-page {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 50px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .pdf-page h2 { color: var(--primary); border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+        .pdf-page p, .pdf-page li { line-height: 1.8; color: #444; font-size: 16px; margin-bottom: 15px; }
+        
+        /* 족보 매칭 하이라이트 효과 (처음엔 숨김) */
+        .match-highlight {
+            background-color: transparent;
+            border-bottom: 2px solid transparent;
+            transition: all 0.5s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        /* 활성화 시 스타일 */
+        .match-highlight.active {
+            background-color: rgba(46, 204, 113, 0.2); /* 연한 초록 배경 */
+            border-bottom: 2px solid var(--accent-jokbo);
+            font-weight: 600;
+        }
+
+        /* 툴팁 (족보 문제 보여주기) */
+        .match-highlight:hover::after {
+            content: attr(data-question);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            width: 250px;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+
+        /* --- 오른쪽: 스마트 사이드바 --- */
+        .sidebar {
+            flex: 1;
+            max-width: 450px;
+            background: white;
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 사이드바 헤더 탭 */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: #fafafa;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: #777;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            background: white;
+        }
+        .tab-btn i { margin-right: 5px; }
+
+        /* 탭 콘텐츠 영역 */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: none; /* 기본 숨김 */
+        }
+        .tab-content.active { display: flex; flex-direction: column; }
+
+        /* 1. 족보 매칭 리스트 스타일 */
+        .jokbo-list-item {
+            background: white;
+            border: 1px solid #eee;
+            border-left: 4px solid var(--accent-jokbo);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .jokbo-list-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .q-tag { font-size: 11px; background: #eee; padding: 2px 6px; border-radius: 4px; color: #555; }
+        .q-text { font-size: 14px; font-weight: bold; margin-top: 5px; display: block;}
+
+        /* 2. 채팅 UI 스타일 */
+        .chat-container { flex: 1; display: flex; flex-direction: column; }
+        .chat-messages { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+        
+        .message { margin-bottom: 15px; max-width: 90%; font-size: 14px; line-height: 1.5; position: relative; }
+        .message.ai { align-self: flex-start; }
+        .message.user { align-self: flex-end; margin-left: auto; background: var(--primary); color: white; padding: 10px 15px; border-radius: 12px 12px 0 12px; }
+        
+        .ai-bubble {
+            background: #f1f3f8;
+            padding: 15px;
+            border-radius: 12px 12px 12px 0;
+            color: #333;
+        }
+        .ai-source {
+            font-size: 11px; color: #666; margin-top: 5px; display: flex; align-items: center; gap: 5px;
+        }
+        
+        /* 드래그/저장 버튼 (AI 답변 내) */
+        .save-snippet-btn {
+            background: white; border: 1px solid #ddd; padding: 2px 8px; border-radius: 12px; cursor: pointer; font-size: 11px; margin-left: auto;
+        }
+        .save-snippet-btn:hover { background: var(--secondary); color: var(--primary); }
+
+        .input-area {
+            display: flex; gap: 10px; padding-top: 15px; border-top: 1px solid #eee;
+        }
+        .input-area input {
+            flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none;
+        }
+        .send-btn {
+            background: var(--primary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+        }
+
+        /* 3. 저장된 노트 스타일 */
+        .saved-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            position: relative;
+            cursor: pointer;
+        }
+        .saved-card::before {
+            content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; background: var(--accent-ai); border-radius: 0 4px 4px 0;
+        }
+        .saved-card.jokbo-type::before { background: var(--accent-jokbo); } /* 족보 저장은 초록색 */
+
+        /* 유틸리티 */
+        .focus-anim { animation: flash 1.5s ease; }
+        @keyframes flash {
+            0% { background-color: rgba(255, 235, 59, 0.5); }
+            100% { background-color: transparent; }
+        }
+
+        .upload-btn {
+            width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px;
+        }
+        .upload-btn:hover { background: #555; }
+
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState } = React;
+    <div class="viewer-section" id="viewer">
+        <div class="pdf-page" id="page-1">
+            <div style="float:right; color:#999; font-size:12px;">Page 1</div>
+            <h2>Evidence That Viral DNA Can Program Cells</h2>
+            <ul>
+                <li>More evidence for DNA as the genetic material came from studies of viruses that infect bacteria.</li>
+                <li>Such viruses, called 
+                    <span class="match-highlight" id="ctx-phage" data-question="Q14. What are Bacteriophages used for in molecular genetics?">
+                        bacteriophages (or phages)
+                    </span>, are widely used in molecular genetics research.
+                </li>
+                <li>A virus is DNA (or RNA) enclosed by a protective protein coat.</li>
+                <li id="ctx-reproduce">Viruses must infect cells and take over the cells' metabolic machinery in order to reproduce.</li>
+            </ul>
+            <div style="background:#f9f9f9; padding:15px; margin-top:20px; border-radius:8px;">
+                <strong>Key Experiment:</strong> Hershey and Chase designed an experiment showing that only the DNA of the T2 phage, and not the protein, enters an <em>E. coli</em> cell during infection.
+            </div>
+        </div>
 
-        // 아이콘 대신 텍스트/이모지로 대체하여 설치 과정 제거
-        const DEMO_SCRIPT = [
-            { id: 1, time: "00:15", text: "자, 오늘은 마케팅의 4P 전략에 대해서 알아볼 겁니다.", isJokbo: false },
-            { id: 2, time: "00:28", text: "그중에서도 가장 중요한 건 바로 'Price(가격)' 결정 전략입니다.", isJokbo: true, jokboNote: "2023년 중간고사 출제: 가격 결정 전략의 3가지를 서술하시오." },
-            { id: 3, time: "00:45", text: "스키밍(Skimming) 전략은 초기에 높은 가격을 책정하는 방식이죠.", isJokbo: false },
-            { id: 4, time: "01:10", text: "반대로 시장 침투(Penetration) 전략은 낮게 시작해서 점유율을 높이는 겁니다.", isJokbo: true, jokboNote: "2022년 기말고사 객관식: 시장 침투 전략의 정의로 옳은 것은?" },
-        ];
+        <div class="pdf-page" id="page-2">
+            <div style="float:right; color:#999; font-size:12px;">Page 2</div>
+            <h2>The Cell Cycle & Mitosis</h2>
+            <p>
+                In 
+                <span class="match-highlight" id="ctx-mitosis" data-question="Q8. 암이 증식하는 데에 Mitosis가 활용되나?">
+                    mitosis
+                </span>, the genetic material is divided equally into two new nuclei.
+            </p>
+            <ul>
+                <li><strong>Prophase:</strong> Chromatin condenses into chromosomes.</li>
+                <li>
+                    <strong>Metaphase:</strong> Chromosomes line up at the metaphase plate. 
+                    <span class="match-highlight" id="ctx-meta" data-question="Q14. In mitosis, how many chromosomes (N) are in the cell on metaphase?">
+                        (Checkpoint for spindle attachment)
+                    </span>
+                </li>
+                <li><strong>Anaphase:</strong> Sister chromatids separate.</li>
+            </ul>
+            <p id="ctx-membrane">
+                The cell membrane plays a crucial role in cytokinesis, pinching the cell into two daughter cells.
+            </p>
+        </div>
+    </div>
 
-        const DemoApp = () => {
-            const [messages, setMessages] = useState([
-                { role: 'ai', text: '안녕하세요! 오늘 강의 내용을 분석했습니다. 족보와 연계된 중요 포인트가 2곳 발견되었어요.' }
-            ]);
-            const [input, setInput] = useState('');
-            const [savedNotes, setSavedNotes] = useState([]);
-            const [selectedText, setSelectedText] = useState('');
+    <div class="sidebar">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="setTab('jokbo')"><i class="fas fa-list-check"></i> 족보 매칭</button>
+            <button class="tab-btn" onclick="setTab('chat')"><i class="fas fa-robot"></i> AI 튜터</button>
+            <button class="tab-btn" onclick="setTab('saved')"><i class="fas fa-bookmark"></i> 저장됨 <span id="save-count" style="font-size:10px; background:red; color:white; padding:2px 5px; border-radius:10px; display:none;">0</span></button>
+        </div>
 
-            const handleSend = () => {
-                if (!input.trim()) return;
-                const newMsg = { role: 'user', text: input };
-                setMessages([...messages, newMsg]);
-                setInput('');
-                
-                setTimeout(() => {
-                    const aiResponse = { 
-                        role: 'ai', 
-                        text: `네, '${input}'에 대한 내용은 강의록 00:28 구간과 관련이 깊습니다. 특히 족보에 자주 출제되는 '시장 침투 전략'과 비교해서 알아두시는 게 좋습니다.` 
-                    };
-                    setMessages(prev => [...prev, aiResponse]);
-                }, 1000);
-            };
+        <div id="tab-jokbo" class="tab-content active">
+            <button class="upload-btn" onclick="analyzeJokbo()">
+                <i class="fas fa-file-upload"></i> 족보 파일 업로드 (Demo)
+            </button>
+            
+            <div id="jokbo-results" style="display:none;">
+                <div style="font-size:12px; color:#666; margin-bottom:10px;">
+                    총 <b style="color:var(--accent-jokbo)">3개</b>의 연관된 내용을 찾았습니다.
+                </div>
 
-            const handleTextSelect = () => {
-                const text = window.getSelection().toString();
-                if (text.length > 0) {
-                    setSelectedText(text);
+                <div class="jokbo-list-item" onclick="jumpTo('ctx-mitosis')">
+                    <span class="q-tag">2024 중간고사 Q8</span>
+                    <span class="q-text">암이 증식하는 데에 Mitosis가 활용되나?</span>
+                    <div style="margin-top:8px; font-size:12px; color:#666;">
+                        <i class="fas fa-link"></i> Page 2 연결됨
+                        <button class="save-snippet-btn" onclick="saveItem('족보', '암 증식과 Mitosis 관계', 'page-2'); event.stopPropagation();">저장</button>
+                    </div>
+                </div>
+
+                <div class="jokbo-list-item" onclick="jumpTo('ctx-meta')">
+                    <span class="q-tag">2023 기말고사 Q14</span>
+                    <span class="q-text">Metaphase의 염색체 수와 DNA 함량은?</span>
+                    <div style="margin-top:8px; font-size:12px; color:#666;">
+                        <i class="fas fa-link"></i> Page 2 연결됨
+                        <button class="save-snippet-btn" onclick="saveItem('족보', 'Metaphase 염색체 수 계산', 'page-2'); event.stopPropagation();">저장</button>
+                    </div>
+                </div>
+
+                <div class="jokbo-list-item" onclick="jumpTo('ctx-phage')">
+                    <span class="q-tag">서술형 Q1</span>
+                    <span class="q-text">Bacteriophages의 역할 서술</span>
+                    <div style="margin-top:8px; font-size:12px; color:#666;">
+                        <i class="fas fa-link"></i> Page 1 연결됨
+                        <button class="save-snippet-btn" onclick="saveItem('족보', 'Bacteriophages 정의', 'page-1'); event.stopPropagation();">저장</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="jokbo-placeholder" style="text-align:center; margin-top:50px; color:#999;">
+                <i class="fas fa-file-pdf" style="font-size:40px; margin-bottom:10px;"></i><br>
+                족보 PDF나 이미지를 업로드하면<br>강의록과 비교 분석합니다.
+            </div>
+        </div>
+
+        <div id="tab-chat" class="tab-content">
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-box">
+                    <div class="message ai">
+                        <div class="ai-bubble">
+                            안녕하세요! 강의록과 족보를 모두 학습했습니다.<br>
+                            궁금한 점을 물어보시거나, <b>"족보 요약해줘"</b>라고 해보세요.
+                        </div>
+                    </div>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="chat-input" placeholder="질문을 입력하세요..." onkeypress="handleKey(event)">
+                    <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-saved" class="tab-content">
+            <div id="saved-list">
+                <div style="text-align:center; color:#999; margin-top:50px;">
+                    <i class="far fa-bookmark" style="font-size:30px; margin-bottom:10px;"></i><br>
+                    중요한 족보 문제나<br>AI 답변을 저장해보세요.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 탭 전환 로직 ---
+        function setTab(tabName) {
+            // 버튼 스타일 초기화 & 설정
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active'); // 클릭된 버튼 활성화 (주의: event 객체 사용)
+
+            // 콘텐츠 초기화 & 설정
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // 탭 버튼 클릭 시 event.currentTarget을 잡기 위해 html onclick에서 함수 호출 시 수정 필요할 수 있음
+            // 하지만 현재 구조상 위 코드는 작동함. 더 안전하게 하기 위해 인덱스로 처리 가능.
+            const buttons = document.querySelectorAll('.tab-btn');
+            if(tabName === 'jokbo') buttons[0].classList.add('active');
+            if(tabName === 'chat') buttons[1].classList.add('active');
+            if(tabName === 'saved') buttons[2].classList.add('active');
+        }
+
+        // --- 2. 족보 분석 시뮬레이션 ---
+        function analyzeJokbo() {
+            const btn = document.querySelector('.upload-btn');
+            const placeholder = document.getElementById('jokbo-placeholder');
+            const results = document.getElementById('jokbo-results');
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 분석 중...';
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> 분석 완료';
+                btn.style.background = '#2ecc71';
+                placeholder.style.display = 'none';
+                results.style.display = 'block';
+
+                // 강의록 내 하이라이트 활성화
+                document.querySelectorAll('.match-highlight').forEach(el => {
+                    el.classList.add('active');
+                    // 클릭 시 해당 문제 정보 표시 (alert 대신 콘솔이나 UI로 확장 가능)
+                    el.onclick = function() {
+                        alert("연관 문제: " + this.getAttribute('data-question'));
+                    }
+                });
+
+                // 사용자에게 알림
+                alert("분석 완료! 강의록에 출제 빈도가 높은 부분이 초록색으로 표시되었습니다.");
+            }, 1500);
+        }
+
+        // --- 3. 딥 링킹 (Deep Linking) & 스크롤 ---
+        function jumpTo(elementId) {
+            const target = document.getElementById(elementId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                target.classList.add('focus-anim');
+                setTimeout(() => target.classList.remove('focus-anim'), 2000);
+            }
+        }
+
+        // --- 4. AI 채팅 로직 ---
+        function handleKey(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // 유저 메시지 추가
+            addMessage('user', text);
+            input.value = '';
+
+            // AI 응답 시뮬레이션
+            setTimeout(() => {
+                let reply = "";
+                let sourcePage = "";
+
+                if (text.includes("족보") || text.includes("요약")) {
+                    reply = "이번 족보 분석 결과, <b>Mitosis(유사분열)</b>와 <b>Bacteriophages</b> 관련 문제가 가장 많이 출제되었습니다. 특히 2페이지의 Metaphase 단계에서 염색체 수를 묻는 함정 문제가 자주 나옵니다.";
+                    sourcePage = "page-2";
+                } else if (text.includes("Mitosis") || text.includes("분열")) {
+                    reply = "Mitosis는 세포 주기 중 핵이 분열하는 과정입니다. 족보(Q8)에 따르면 암세포 증식 기전과 연관지어 서술하는 문제가 출제되었습니다.";
+                    sourcePage = "page-2";
+                } else if (text.includes("바이러스") || text.includes("DNA")) {
+                    reply = "바이러스 DNA가 유전 물질임을 증명한 Hershey-Chase 실험이 중요합니다(1페이지). 단백질이 아닌 DNA가 세포로 들어간다는 점을 꼭 기억하세요.";
+                    sourcePage = "page-1";
+                } else {
+                    reply = "강의록과 족보 내에서 해당 내용을 찾고 있습니다. 'Mitosis'나 '바이러스'에 대해 물어봐 주시겠어요?";
                 }
-            };
 
-            const saveNote = () => {
-                if (!selectedText) return;
-                const newNote = {
-                    id: Date.now(),
-                    text: selectedText,
-                    relatedScriptId: 2
-                };
-                setSavedNotes([...savedNotes, newNote]);
+                addMessage('ai', reply, sourcePage);
+            }, 800);
+        }
+
+        function addMessage(type, text, sourceId = null) {
+            const box = document.getElementById('chat-box');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            
+            let contentHtml = text;
+            if (type === 'ai') {
+                contentHtml = `<div class="ai-bubble">
+                                ${text}
+                                <div class="ai-source">
+                                    ${sourceId ? `<i class="fas fa-book-open"></i> <span onclick="jumpTo('${sourceId}')" style="cursor:pointer; text-decoration:underline;">관련 페이지 이동</span>` : ''}
+                                    <button class="save-snippet-btn" onclick="saveItem('AI 답변', '${text.substring(0,15)}...', '${sourceId || 'page-1'}')">저장</button>
+                                </div>
+                               </div>`;
+            } else {
+                msgDiv.innerText = text;
+            }
+
+            if (type === 'ai') msgDiv.innerHTML = contentHtml;
+            
+            box.appendChild(msgDiv);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // --- 5. 저장 기능 (Save Logic) ---
+        let savedCount = 0;
+        function saveItem(type, text, targetId) {
+            const list = document.getElementById('saved-list');
+            const emptyMsg = list.querySelector('div');
+            if (emptyMsg) emptyMsg.style.display = 'none';
+
+            const card = document.createElement('div');
+            card.className = `saved-card ${type === '족보' ? 'jokbo-type' : ''}`;
+            card.onclick = () => jumpTo(targetId);
+            card.innerHTML = `
+                <div style="font-size:10px; color:#888; margin-bottom:5px;">
+                    <span style="background:#eee; padding:2px 5px; border-radius:3px;">${type}</span> 
+                    ${targetId.replace('page-', '')}페이지
+                </div>
+                <div style="font-weight:bold; font-size:14px;">${text}</div>
+            `;
+            
+            list.prepend(card);
+            
+            // 카운트 업데이트
+            savedCount++;
+            const badge = document.getElementById('save-count');
+            badge.innerText = savedCount;
+            badge.style.display = 'inline-block';
+
+            // 탭 이동 효과 (선택사항)
+            // setTab('saved'); 
+            
+            // 저장 완료 피드백 (간단한 애니메이션이나 토스트 대신 버튼 텍스트 변경 등 가능)
+        }
+        
+        // 초기화: 첫 번째 탭 버튼 활성화 상태 맞추기
+        document.querySelector('.tab-btn').classList.add('active');
+    </script>
+</body>
+</html>
                 setSelectedText('');
                 alert("강의록 옆에 메모가 저장되었습니다!");
             };
