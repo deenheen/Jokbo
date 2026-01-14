@@ -3,71 +3,394 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 학습 보조 시스템 (Demo)</title>
+    <title>Smart Study Aid (Demo)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* --- CSS 변수 정의 (색상 팔레트) --- */
+        /* --- 1. 기본 설정 (Reset & Variables) --- */
         :root {
-            --primary-color: #3498db;       /* 주 색상 (파랑) */
-            --secondary-color: #2c3e50;     /* 보조 색상 (진한 남색) */
-            --background-color: #f8f9fa;    /* 전체 배경색 */
-            --sidebar-bg: #ffffff;          /* 사이드바 배경색 */
-            --border-color: #e9ecef;        /* 테두리 색상 */
-            --highlight-jokbo: #fff3cd;     /* 족보 매칭 하이라이트 (노랑) */
-            --accent-jokbo: #ffc107;        /* 족보 강조색 (진한 노랑) */
-            --text-color: #333333;          /* 기본 텍스트 색상 */
-            --text-light: #868e96;          /* 밝은 텍스트 색상 */
+            --primary: #4F46E5;       /* 메인 컬러 (인디고) */
+            --bg-gray: #f3f4f6;       /* 배경색 */
+            --paper: #ffffff;         /* 문서 배경색 */
+            --text-main: #1f2937;     /* 기본 텍스트 */
+            --text-sub: #6b7280;      /* 보조 텍스트 */
+            --highlight: #fef08a;     /* 형광펜 색상 (노랑) */
+            --highlight-border: #eab308;
+            --border: #e5e7eb;
+            --sidebar-width: 400px;
         }
 
-        /* --- 기본 스타일 설정 --- */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-gray);
             height: 100vh;
             display: flex;
-            overflow: hidden; /* 전체 스크롤 방지 */
+            overflow: hidden; /* 전체 화면 스크롤 방지 */
         }
 
-        /* --- 레이아웃 분할 --- */
-        /* 왼쪽: 강의록 뷰어 영역 */
-        .main-viewer {
-            flex: 1; /* 남은 공간 모두 차지 */
-            padding: 30px;
-            overflow-y: auto; /* 세로 스크롤 허용 */
-            border-right: 1px solid var(--border-color);
-            background-color: #fff;
+        /* --- 2. 레이아웃 (Layout) --- */
+        /* 왼쪽: 강의록 뷰어 */
+        .viewer-area {
+            flex: 1; /* 남은 공간 다 차지 */
             display: flex;
-            justify-content: center; /* 중앙 정렬 */
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            overflow-y: auto; /* 내부 스크롤 */
         }
 
-        .document-container {
-            max-width: 900px; /* 문서 최대 너비 제한 */
+        /* 문서 종이 스타일 */
+        .paper-doc {
             width: 100%;
-            background-color: #fff;
-            padding: 50px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        /* 강의록 내용 스타일 */
-        .lecture-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 30px;
-            color: var(--secondary-color);
-            border-bottom: 3px solid var(--primary-color);
-            padding-bottom: 15px;
-        }
-
-        .lecture-content p {
-            font-size: 1.1rem;
+            max-width: 800px;
+            background: var(--paper);
+            padding: 60px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: var(--text-main);
             line-height: 1.8;
+        }
+
+        .paper-doc h1 { font-size: 2rem; margin-bottom: 20px; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 15px; }
+        .paper-doc p { margin-bottom: 20px; font-size: 1.05rem; }
+
+        /* 하이라이트 효과 */
+        .highlight {
+            background: transparent;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .highlight.active {
+            background-color: var(--highlight);
+            border-bottom: 2px solid var(--highlight-border);
+            font-weight: 600;
+        }
+
+        /* 툴팁 (마우스 올렸을 때 문제 보여주기) */
+        .highlight:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            width: 250px;
+            z-index: 100;
+            pointer-events: none;
+            margin-bottom: 5px;
+        }
+
+        /* 오른쪽: 사이드바 */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--paper);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 15px rgba(0,0,0,0.05);
+        }
+
+        /* --- 3. 사이드바 컴포넌트 --- */
+        /* 탭 메뉴 */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .tab-btn:hover { background: #f9fafb; }
+        .tab-btn.active { 
+            color: var(--primary); 
+            border-bottom: 3px solid var(--primary); 
+        }
+
+        /* 탭 콘텐츠 영역 */
+        .tab-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: none; /* 기본 숨김 */
+        }
+        .tab-content.show { display: block; }
+        
+        /* Flex 모드가 필요한 탭 (채팅) */
+        .tab-content.flex-col {
+            display: none;
+            flex-direction: column;
+        }
+        .tab-content.flex-col.show { display: flex; }
+
+        /* 족보 업로드 버튼 */
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .upload-box:hover { border-color: var(--primary); background: #f0fdf4; }
+        
+        /* 족보 리스트 아이템 */
+        .match-item {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-left: 4px solid #22c55e; /* 초록색 */
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .match-item:hover { transform: translateX(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tag { font-size: 11px; background: #eee; padding: 2px 6px; border-radius: 4px; color: #555; margin-bottom: 5px; display: inline-block; }
+
+        /* 채팅 UI */
+        .chat-area { flex: 1; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; }
+        .msg { margin-bottom: 15px; font-size: 14px; line-height: 1.5; max-width: 90%; }
+        .msg.ai { background: #eff6ff; padding: 12px; border-radius: 12px 12px 12px 0; color: #1e3a8a; }
+        .msg.user { background: var(--primary); color: white; padding: 10px 12px; border-radius: 12px 12px 0 12px; margin-left: auto; width: fit-content;}
+        
+        .chat-input-box { display: flex; gap: 10px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .chat-input { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 20px; outline: none; }
+        .send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; border: none; cursor: pointer; }
+
+        /* 저장 버튼 (채팅 내) */
+        .save-btn { font-size: 11px; border: 1px solid #ddd; background: white; cursor: pointer; padding: 2px 8px; border-radius: 10px; margin-top: 5px; }
+        
+        /* 애니메이션 */
+        .flash { animation: flash-anim 1.5s ease; }
+        @keyframes flash-anim {
+            0% { background-color: rgba(255, 215, 0, 0.5); }
+            100% { background-color: transparent; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <main class="viewer-area">
+        <div class="paper-doc">
+            <h1>마케팅 원론 3주차: 소비자 행동</h1>
+            <p style="color:#666; font-size: 14px;">교수: 김메타 | 강의실: 304호</p>
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+            <p>
+                소비자 행동 연구는 마케팅의 시작이자 끝입니다. 소비자가 제품을 구매하기까지의 과정을 이해해야 합니다.
+                가장 먼저 일어나는 단계는 
+                <span class="highlight" id="high-1" data-tooltip="[2023 중간] 문제 인식 단계의 내적/외적 요인을 서술하시오.">문제 인식(Problem Recognition)</span>입니다.
+                현재 상태와 바라는 상태의 괴리를 느끼는 순간입니다.
+            </p>
+
+            <p>
+                그 다음은 정보 탐색입니다. 기억을 더듬는 내적 탐색과 외부에서 정보를 찾는 외적 탐색이 있습니다.
+                특히 <span class="highlight" id="high-2" data-tooltip="[2022 기말] 고관여 제품일수록 외적 탐색 비중이 늘어나는 이유는?">관여도(Involvement)가 높은 제품</span>일수록 
+                소비자는 더 많은 시간을 들여 외적 탐색을 수행합니다.
+            </p>
+
+            <p>
+                이후 대안 평가, 구매, 그리고 
+                <span class="highlight" id="high-3" data-tooltip="[2024 쪽지시험] 인지부조화의 정의와 해결 방안은?">구매 후 행동</span>으로 이어집니다.
+                구매 후 행동 단계에서 발생하는 '인지 부조화'를 줄여주는 것이 재구매를 유도하는 핵심 전략입니다.
+            </p>
+        </div>
+    </main>
+
+    <aside class="sidebar">
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="switchTab('jokbo', this)">
+                <i class="fas fa-file-alt"></i> 족보 매칭
+            </button>
+            <button class="tab-btn" onclick="switchTab('ai', this)">
+                <i class="fas fa-robot"></i> AI 튜터
+            </button>
+            <button class="tab-btn" onclick="switchTab('saved', this)">
+                <i class="fas fa-bookmark"></i> 저장됨
+            </button>
+        </nav>
+
+        <div id="tab-jokbo" class="tab-content show">
+            <div class="upload-box" onclick="runAnalysis()">
+                <i class="fas fa-cloud-upload-alt fa-2x" style="color:#ccc; margin-bottom:10px;"></i><br>
+                <b>족보 파일 업로드 (Click)</b><br>
+                <span style="font-size:12px; color:#888;">PDF나 이미지를 올리면 분석합니다.</span>
+            </div>
+            
+            <div id="analysis-result" style="display: none;">
+                <h4 style="margin-bottom:15px; color:var(--text-main);">
+                    <i class="fas fa-check-circle" style="color:#22c55e;"></i> 분석 결과: 3건 매칭
+                </h4>
+
+                <div class="match-item" onclick="jumpTo('high-1')">
+                    <span class="tag">2023 중간고사</span>
+                    <div style="font-weight:bold; font-size:14px;">문제 인식 단계 서술형</div>
+                    <div style="font-size:12px; color:#666; margin-top:5px;">강의록 1번째 문단 관련</div>
+                </div>
+
+                <div class="match-item" onclick="jumpTo('high-2')">
+                    <span class="tag">2022 기말고사</span>
+                    <div style="font-weight:bold; font-size:14px;">관여도와 정보 탐색</div>
+                    <div style="font-size:12px; color:#666; margin-top:5px;">강의록 2번째 문단 관련</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-ai" class="tab-content flex-col">
+            <div class="chat-area" id="chat-box">
+                <div class="msg ai">
+                    안녕하세요! 👋 <br>
+                    마케팅 원론 3주차 강의록과 족보를 모두 학습했습니다. 궁금한 내용을 물어보세요.
+                </div>
+            </div>
+            <div class="chat-input-box">
+                <input type="text" id="user-input" class="chat-input" placeholder="질문을 입력하세요..." onkeypress="if(event.key==='Enter') sendMsg()">
+                <button class="send-btn" onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <div id="tab-saved" class="tab-content">
+            <div id="saved-list">
+                <div style="text-align:center; color:#999; margin-top:50px;">
+                    <i class="far fa-folder-open fa-2x"></i><br><br>
+                    저장된 내용이 없습니다.<br>
+                    채팅창이나 족보에서 '저장'을 눌러보세요.
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+        // --- 기능 로직 ---
+
+        // 1. 탭 전환
+        function switchTab(tabId, btnElement) {
+            // 버튼 스타일 초기화
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // 콘텐츠 숨기기
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('show');
+                if (content.id === 'tab-ai') content.style.display = 'none'; // flex-col 처리용
+            });
+
+            // 선택된 탭 보이기
+            const target = document.getElementById('tab-' + tabId);
+            if (tabId === 'ai') {
+                target.style.display = 'flex'; // 채팅 탭은 flex 필요
+            } else {
+                target.classList.add('show');
+            }
+        }
+
+        // 2. 족보 분석 시뮬레이션
+        function runAnalysis() {
+            const uploadBox = document.querySelector('.upload-box');
+            uploadBox.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 분석 중...';
+            
+            setTimeout(() => {
+                uploadBox.style.display = 'none'; // 업로드 박스 숨김
+                document.getElementById('analysis-result').style.display = 'block'; // 결과 표시
+                
+                // 강의록에 형광펜 칠하기
+                document.querySelectorAll('.highlight').forEach(el => el.classList.add('active'));
+                
+                // 탭을 AI로 자동 전환해서 알려줌 (선택사항)
+                // switchTab('ai', document.querySelectorAll('.tab-btn')[1]);
+                addAiMsg("족보 분석이 완료되었습니다! 강의록에 노란색으로 중요 표시를 해두었습니다.");
+            }, 1000);
+        }
+
+        // 3. 해당 위치로 이동 (Deep Linking)
+        function jumpTo(id) {
+            const element = document.getElementById(id);
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 깜빡임 효과
+            element.parentElement.classList.add('flash');
+            setTimeout(() => element.parentElement.classList.remove('flash'), 1500);
+        }
+
+        // 4. 채팅 기능
+        function sendMsg() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // 내 메시지 추가
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div class="msg user">${text}</div>`;
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // AI 응답 시뮬레이션
+            setTimeout(() => {
+                let reply = "죄송해요, 강의록에서 찾을 수 없는 내용입니다.";
+                if (text.includes("족보") || text.includes("요약")) {
+                    reply = "이번 주차 족보 핵심은 <b>'인지 부조화'</b>와 <b>'관여도'</b>입니다. 특히 기말고사 기출(2번)을 꼭 확인하세요!";
+                } else if (text.includes("인지")) {
+                    reply = "인지 부조화란 구매 후 자신의 선택에 대해 불안감을 느끼는 심리입니다. 마케터는 이를 해소시켜줘야 합니다.";
+                }
+
+                addAiMsg(reply, true);
+            }, 600);
+        }
+
+        function addAiMsg(text, showSaveBtn = false) {
+            const chatBox = document.getElementById('chat-box');
+            let btnHtml = '';
+            if (showSaveBtn) {
+                // 저장 버튼 기능 연결
+                // 문자열 이스케이프 처리를 간단히 하기 위해 text를 그대로 넘김
+                btnHtml = `<br><button class="save-btn" onclick="saveNote('${text.replace(/<[^>]*>?/gm, '').substring(0, 15)}...')">📌 노트에 저장</button>`;
+            }
+            
+            chatBox.innerHTML += `<div class="msg ai">${text} ${btnHtml}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 5. 저장 기능
+        function saveNote(noteText) {
+            const list = document.getElementById('saved-list');
+            
+            // "저장된 내용 없음" 메시지 제거
+            if (list.innerText.includes('저장된 내용이 없습니다')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'match-item'; // 기존 스타일 재활용
+            item.innerHTML = `
+                <div style="font-weight:bold; font-size:14px;">${noteText}</div>
+                <div style="font-size:11px; color:#888; margin-top:5px;">AI 채팅에서 저장됨</div>
+            `;
+            list.prepend(item);
+            
+            alert('노트에 저장되었습니다!');
+        }
+    </script>
+</body>
+</html>
             margin-bottom: 20px;
             color: #555;
         }
