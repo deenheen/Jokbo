@@ -6,65 +6,288 @@
     <title>Smart Study Aid (Demo)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* --- 1. 기본 스타일 (Reset) --- */
+        /* --- CSS 스타일 (UI 디자인) --- */
         :root {
-            --primary: #4F46E5;       /* 메인 컬러 (보라/남색 계열) */
+            --primary: #4F46E5;       /* 메인 컬러 */
             --bg-gray: #f3f4f6;       /* 전체 배경 */
             --paper: #ffffff;         /* 문서 배경 */
-            --highlight-bg: #fef08a;  /* 형광펜 배경 (노랑) */
-            --highlight-border: #eab308; /* 형광펜 밑줄 */
-            --border-color: #e5e7eb;
+            --highlight: #fef08a;     /* 형광펜 색 */
+            --border: #e5e7eb;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Pretendard', sans-serif;
             background-color: var(--bg-gray);
-            height: 100vh; /* 화면 전체 높이 사용 */
-            display: flex; /* 좌우 분할의 핵심 */
-            overflow: hidden; /* 전체 스크롤 방지 (영역별 스크롤 위함) */
+            height: 100vh;
+            display: flex; /* 좌우 분할 */
+            overflow: hidden; 
         }
 
-        /* --- 2. 왼쪽: 강의록 뷰어 영역 (Viewer) --- */
+        /* [왼쪽] 강의록 뷰어 */
         .viewer-container {
-            flex: 1; /* 남은 너비 모두 차지 */
+            flex: 1.5; /* 왼쪽이 조금 더 넓게 */
+            padding: 30px;
+            overflow-y: auto;
             display: flex;
             justify-content: center;
-            padding: 40px;
-            overflow-y: auto; /* 내용이 길면 이 안에서만 스크롤 */
-            background-color: #f8fafc;
         }
 
         .paper-doc {
             width: 100%;
-            max-width: 850px; /* A4 용지 느낌의 최대 너비 */
+            max-width: 800px;
             background: var(--paper);
-            padding: 60px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             border-radius: 8px;
-            color: #333;
-            line-height: 1.8;
-            height: fit-content; /* 내용만큼만 높이 차지 */
+            height: fit-content;
         }
 
-        .paper-doc h1 { 
-            font-size: 2.2rem; margin-bottom: 20px; color: var(--primary); 
-            border-bottom: 2px solid var(--border-color); padding-bottom: 15px; 
-        }
-        
-        .paper-doc p { margin-bottom: 24px; font-size: 1.1rem; word-break: keep-all; }
+        .paper-doc h1 { color: var(--primary); margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .paper-doc p { line-height: 1.8; margin-bottom: 20px; font-size: 16px; color: #333; }
+        .paper-doc h3 { margin-top: 30px; margin-bottom: 10px; color: #444; }
 
-        /* 하이라이트 효과 (기본은 투명) */
-        .highlight-text {
+        /* 하이라이트 효과 */
+        .highlight {
             background: transparent;
             border-bottom: 2px solid transparent;
-            transition: all 0.4s ease;
+            transition: 0.3s;
             cursor: pointer;
-            position: relative;
             padding: 2px 0;
         }
+        .highlight.active {
+            background-color: var(--highlight);
+            border-bottom: 2px solid #ca8a04;
+            font-weight: bold;
+        }
+        /* 툴팁 */
+        .highlight:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            background: #333; color: #fff;
+            padding: 8px; border-radius: 5px;
+            font-size: 12px; margin-top: 25px;
+            z-index: 10; width: 200px;
+        }
+
+        /* [오른쪽] 사이드바 */
+        .sidebar {
+            flex: 1;
+            min-width: 350px;
+            max-width: 450px;
+            background: #fff;
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 탭 버튼 */
+        .tabs { display: flex; border-bottom: 1px solid #eee; }
+        .tab-btn {
+            flex: 1; padding: 15px; background: none; border: none;
+            font-weight: bold; color: #888; cursor: pointer;
+        }
+        .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+        /* 탭 내용 */
+        .tab-content { flex: 1; padding: 20px; display: none; overflow-y: auto; }
+        .tab-content.show { display: block; }
+        .tab-content.flex-col { display: none; flex-direction: column; }
+        .tab-content.flex-col.show { display: flex; }
+
+        /* 업로드 박스 */
+        .upload-box {
+            border: 2px dashed #ccc; border-radius: 10px; padding: 30px;
+            text-align: center; cursor: pointer; margin-top: 20px;
+            transition: 0.2s;
+        }
+        .upload-box:hover { border-color: var(--primary); background: #eef2ff; }
+
+        /* 족보 리스트 */
+        .match-card {
+            background: #fff; border: 1px solid #eee;
+            border-left: 5px solid #22c55e;
+            padding: 15px; margin-bottom: 10px;
+            border-radius: 5px; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .tag { font-size: 11px; background: #eee; padding: 2px 6px; border-radius: 4px; color: #555; }
+
+        /* 채팅창 */
+        .chat-area { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 85%; font-size: 14px; line-height: 1.4; }
+        .msg.ai { background: #f3f4f6; align-self: flex-start; border-top-left-radius: 2px; }
+        .msg.user { background: var(--primary); color: #fff; align-self: flex-end; border-top-right-radius: 2px; }
         
+        .chat-input-box {
+            border-top: 1px solid #eee; padding: 15px; display: flex; gap: 10px;
+        }
+        .chat-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        .send-btn { background: var(--primary); color: #fff; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
+
+        /* 저장 버튼 */
+        .save-btn {
+            font-size: 11px; border: 1px solid #ddd; background: #fff;
+            padding: 3px 8px; border-radius: 10px; margin-top: 5px; cursor: pointer;
+        }
+
+        /* 깜빡임 애니메이션 */
+        .flash { animation: flash 1.5s; }
+        @keyframes flash { 0% { background: yellow; } 100% { background: transparent; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="viewer-container">
+        <div class="paper-doc">
+            <h1>Evidence That Viral DNA Can Program Cells</h1>
+            <p style="color:#666; font-size:14px; border-bottom:1px solid #eee; padding-bottom:10px;">Page 1 / Chapter 3</p>
+            <br>
+            <h3>1. Viral DNA Studies</h3>
+            <p>
+                More evidence for DNA as the genetic material came from studies of viruses that infect bacteria.
+                Such viruses, called 
+                <span class="highlight" id="word-1" data-tip="[Q14] Bacteriophages의 정의를 묻는 기출문제 (2023 기말)">bacteriophages (or phages)</span>, 
+                are widely used in molecular genetics research.
+            </p>
+            <p>
+                A virus is DNA (or RNA) enclosed by a protective protein coat. 
+                Viruses must infect cells and take over the cells' metabolic machinery in order to reproduce.
+            </p>
+            <h3>2. Hershey-Chase Experiment</h3>
+            <p>
+                Alfred Hershey and Martha Chase showed that the genetic material of a phage known as T2 is DNA.
+                They designed an experiment showing that only the 
+                <span class="highlight" id="word-2" data-tip="[서술형] DNA가 유전물질임을 증명한 실험 결과 서술">DNA of the T2 phage</span>, 
+                and not the protein, enters an <em>E. coli</em> cell.
+            </p>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="setTab('jokbo', this)">족보 매칭</button>
+            <button class="tab-btn" onclick="setTab('ai', this)">AI 튜터</button>
+            <button class="tab-btn" onclick="setTab('saved', this)">저장됨</button>
+        </div>
+
+        <div id="tab-jokbo" class="tab-content show">
+            <div id="upload-area" class="upload-box" onclick="analyze()">
+                <i class="fas fa-file-upload fa-2x"></i><br><br>
+                <b>족보 파일 업로드 (Click)</b><br>
+                <span style="font-size:12px; color:#999;">Demo 버전입니다.</span>
+            </div>
+            <div id="result-area" style="display:none;">
+                <h4 style="margin-bottom:15px; color:#333;">분석 결과: 2건 매칭</h4>
+                <div class="match-card" onclick="jumpTo('word-1')">
+                    <span class="tag">2023 기말 Q14</span>
+                    <div style="font-weight:bold; margin-top:5px;">Bacteriophages 정의</div>
+                </div>
+                <div class="match-card" onclick="jumpTo('word-2')">
+                    <span class="tag">2024 서술형</span>
+                    <div style="font-weight:bold; margin-top:5px;">Hershey-Chase 실험</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-ai" class="tab-content flex-col">
+            <div class="chat-area" id="chat-box">
+                <div class="msg ai">
+                    안녕하세요! 족보와 강의록을 분석했습니다.<br>
+                    궁금한 점을 물어보세요.
+                </div>
+            </div>
+            <div class="chat-input-box">
+                <input type="text" id="u-input" class="chat-input" placeholder="질문 입력..." onkeypress="if(event.key=='Enter') send()">
+                <button class="send-btn" onclick="send()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <div id="tab-saved" class="tab-content">
+            <div id="saved-list" style="text-align:center; color:#999; margin-top:50px;">
+                저장된 내용이 없습니다.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 기능 스크립트 (Vanilla JS) ---
+
+        // 1. 탭 전환
+        function setTab(id, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => {
+                c.classList.remove('show');
+                if(c.id === 'tab-ai') c.style.display = 'none';
+            });
+            
+            const target = document.getElementById('tab-' + id);
+            if(id === 'ai') target.style.display = 'flex';
+            else target.classList.add('show');
+        }
+
+        // 2. 분석 시뮬레이션
+        function analyze() {
+            const box = document.getElementById('upload-area');
+            box.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 분석 중...';
+            setTimeout(() => {
+                box.style.display = 'none';
+                document.getElementById('result-area').style.display = 'block';
+                // 하이라이트 활성화
+                document.querySelectorAll('.highlight').forEach(el => el.classList.add('active'));
+            }, 1000);
+        }
+
+        // 3. 이동 및 강조
+        function jumpTo(id) {
+            const el = document.getElementById(id);
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.parentElement.classList.add('flash');
+            setTimeout(() => el.parentElement.classList.remove('flash'), 1500);
+        }
+
+        // 4. 채팅
+        function send() {
+            const input = document.getElementById('u-input');
+            const txt = input.value.trim();
+            if(!txt) return;
+
+            addMsg('user', txt);
+            input.value = '';
+
+            setTimeout(() => {
+                let reply = "강의록에 없는 내용입니다.";
+                if(txt.includes('족보') || txt.includes('요약')) reply = "핵심 족보는 <b>Hershey-Chase 실험</b>입니다. DNA가 유전물질임을 증명하는 과정을 꼭 외우세요!";
+                else if(txt.includes('실험')) reply = "T2 파지를 이용해 단백질이 아닌 DNA가 세포로 들어감을 증명했습니다.";
+                
+                addMsg('ai', reply, true);
+            }, 600);
+        }
+
+        function addMsg(type, html, saveBtn = false) {
+            const box = document.getElementById('chat-box');
+            let btn = '';
+            if(saveBtn) {
+                const plain = html.replace(/<[^>]*>?/gm, '');
+                btn = `<br><button class="save-btn" onclick="save('${plain}')">📌 저장</button>`;
+            }
+            box.innerHTML += `<div class="msg ${type}">${html}${btn}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // 5. 저장
+        function save(txt) {
+            const list = document.getElementById('saved-list');
+            if(list.innerText.includes('없습니다')) list.innerHTML = '';
+            list.innerHTML = `<div class="match-card"><b>${txt.substring(0,20)}...</b></div>` + list.innerHTML;
+            alert('저장되었습니다!');
+        }
+    </script>
+</body>
+</html>
         /* 활성화 시 스타일 */
         .highlight-text.active {
             background-color: var(--highlight-bg);
