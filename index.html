@@ -1,70 +1,152 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Study Aid (Demo)</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* --- CSS 스타일 (UI 디자인) --- */
-        :root {
-            --primary: #4F46E5;       /* 메인 컬러 */
-            --bg-gray: #f3f4f6;       /* 전체 배경 */
-            --paper: #ffffff;         /* 문서 배경 */
-            --highlight: #fef08a;     /* 형광펜 색 */
-            --border: #e5e7eb;
-        }
+import React, { useState } from 'react';
+import { MessageSquare, BookOpen, Save, Send, ChevronLeft, ChevronRight, Pin } from 'lucide-react';
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: 'Pretendard', sans-serif;
-            background-color: var(--bg-gray);
-            height: 100vh;
-            display: flex; /* 좌우 분할 */
-            overflow: hidden; 
-        }
+const AIDemoAppV2 = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('jokbo');
+  const [chatInput, setChatInput] = useState('');
+  const [messages, setMessages] = useState([{ role: 'ai', content: '강의록의 DNA 실험 부분이 어렵다면 질문해 주세요!' }]);
+  
+  // 📌 강의록 위에 띄워질 '핀' 저장소
+  const [pinnedNotes, setPinnedNotes] = useState([
+    { id: 101, page: 3, type: 'jokbo', content: '14. Let the cell has 32 chromosomes...', x: '60%', y: '15%', color: 'bg-cyan-100 border-cyan-400' }
+  ]);
 
-        /* [왼쪽] 강의록 뷰어 */
-        .viewer-container {
-            flex: 1.5; /* 왼쪽이 조금 더 넓게 */
-            padding: 30px;
-            overflow-y: auto;
-            display: flex;
-            justify-content: center;
-        }
+  const lecturePages = [
+    { id: 1, title: "세포 분열 기초", content: "모든 생명체는 세포 분열을 통해 성장합니다..." },
+    { id: 2, title: "DNA 복제 기전", content: "S기에서 DNA 복제가 일어나며, 헬리케이스 효소가..." },
+    { id: 3, title: "Evidence: Viral DNA", content: "Hershey와 Chase의 실험은 DNA가 유전 물질임을 증명했습니다. 박테리오파지(Phage)를 이용하여..." }
+  ];
 
-        .paper-doc {
-            width: 100%;
-            max-width: 800px;
-            background: var(--paper);
-            padding: 50px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            border-radius: 8px;
-            height: fit-content;
-        }
+  const examQuestions = [
+    { id: 14, text: "14. Let the cell has 32 chromosomes. In mitosis, how many chromosomes...", pageRef: 3 },
+    { id: 20, text: "20. Extracellular peripheral protein의 기전은?", pageRef: 1 },
+  ];
 
-        .paper-doc h1 { color: var(--primary); margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .paper-doc p { line-height: 1.8; margin-bottom: 20px; font-size: 16px; color: #333; }
-        .paper-doc h3 { margin-top: 30px; margin-bottom: 10px; color: #444; }
+  // 1. 족보나 채팅 답변을 강의록에 핀으로 고정하는 함수
+  const pinToSlide = (content, type) => {
+    const newPin = {
+      id: Date.now(),
+      page: currentPage,
+      type: type,
+      content: content.substring(0, 60) + "...", // 요약 표시
+      x: `${Math.random() * 50 + 20}%`, // 랜덤 위치 (실제로는 드래그 위치)
+      y: `${Math.random() * 50 + 10}%`,
+      color: type === 'chat' ? 'bg-orange-100 border-orange-400' : 'bg-green-100 border-green-400'
+    };
+    setPinnedNotes([...pinnedNotes, newPin]);
+  };
 
-        /* 하이라이트 효과 */
-        .highlight {
-            background: transparent;
-            border-bottom: 2px solid transparent;
-            transition: 0.3s;
-            cursor: pointer;
-            padding: 2px 0;
-        }
-        .highlight.active {
-            background-color: var(--highlight);
-            border-bottom: 2px solid #ca8a04;
-            font-weight: bold;
-        }
-        /* 툴팁 */
-        .highlight:hover::after {
-            content: attr(data-tip);
-            position: absolute;
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return;
+    setMessages(prev => [...prev, { role: 'user', content: chatInput }]);
+    setTimeout(() => {
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        content: `박테리오파지는 DNA를 세포 내로 주입하여 복제합니다.`,
+        canPin: true 
+      }]);
+    }, 600);
+    setChatInput('');
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-200">
+      
+      {/* 왼쪽: 강의록 뷰어 (핀 오버레이 영역) */}
+      <div className="w-3/5 relative flex flex-col border-r bg-white shadow-2xl m-2 rounded-xl overflow-hidden">
+        <div className="p-3 bg-slate-700 text-white flex justify-between">
+          <span className="font-bold">📄 Lecture Viewer</span>
+          <div className="flex gap-2">
+            <button onClick={() => setCurrentPage(Math.max(1, currentPage-1))}><ChevronLeft size={18}/></button>
+            <span>{currentPage} / 3</span>
+            <button onClick={() => setCurrentPage(Math.min(3, currentPage+1))}><ChevronRight size={18}/></button>
+          </div>
+        </div>
+
+        {/* 실제 강의록 내용 & 핀들이 뜨는 곳 */}
+        <div className="flex-1 p-12 relative bg-[#f8f9fa] overflow-hidden">
+          <h1 className="text-3xl font-serif font-bold text-blue-900 mb-8 underline decoration-blue-200">
+            {lecturePages[currentPage-1].title}
+          </h1>
+          <p className="text-xl leading-relaxed text-gray-800 whitespace-pre-wrap">
+            {lecturePages[currentPage-1].content}
+            {"\n\n".repeat(5)} {/* 이미지처럼 공간 확보 */}
+          </p>
+
+          {/* 📍 현재 페이지에 해당하는 핀들을 화면에 렌더링 */}
+          {pinnedNotes.filter(n => n.page === currentPage).map(pin => (
+            <div 
+              key={pin.id}
+              style={{ left: pin.x, top: pin.y }}
+              className={`absolute p-3 rounded shadow-lg border-2 w-48 text-xs animate-in fade-in zoom-in duration-300 ${pin.color}`}
+            >
+              <div className="flex justify-between items-start mb-1">
+                <span className="font-bold text-[10px] uppercase">{pin.type} Note</span>
+                <button onClick={() => setPinnedNotes(pinnedNotes.filter(p => p.id !== pin.id))} className="text-gray-400 hover:text-red-500">×</button>
+              </div>
+              {pin.content}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 오른쪽: 사이드바 (족보/채팅) */}
+      <div className="w-2/5 flex flex-col bg-white m-2 rounded-xl shadow-lg overflow-hidden">
+        <div className="flex border-b bg-gray-50">
+          <button onClick={() => setActiveTab('jokbo')} className={`flex-1 p-4 font-bold ${activeTab === 'jokbo' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'}`}>족보 매칭</button>
+          <button onClick={() => setActiveTab('chat')} className={`flex-1 p-4 font-bold ${activeTab === 'chat' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-400'}`}>AI 채팅</button>
+        </div>
+
+        <div className="flex-1 p-4 overflow-y-auto">
+          {activeTab === 'jokbo' ? (
+            <div className="space-y-3">
+              {examQuestions.map(q => (
+                <div key={q.id} className={`p-4 rounded border transition-all ${q.pageRef === currentPage ? 'bg-blue-50 border-blue-300' : 'opacity-40'}`}>
+                  <p className="text-sm">{q.text}</p>
+                  {q.pageRef === currentPage && (
+                    <button 
+                      onClick={() => pinToSlide(q.text, 'jokbo')}
+                      className="mt-2 text-xs flex items-center gap-1 text-blue-500 font-bold hover:bg-blue-100 p-1 rounded"
+                    >
+                      <Pin size={12}/> 이 내용을 강의록에 고정
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col">
+              <div className="flex-1 space-y-4">
+                {messages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`p-3 rounded-lg max-w-[85%] text-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 border'}`}>
+                      {m.content}
+                      {m.canPin && (
+                        <button 
+                          onClick={() => pinToSlide(m.content, 'chat')}
+                          className="mt-2 block text-[10px] text-orange-600 font-bold hover:underline"
+                        >
+                          📌 이 답변을 강의록에 핀으로 꽂기
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <input value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="AI에게 질문..." className="flex-1 border p-2 rounded-lg text-sm" />
+                <button onClick={handleSendMessage} className="bg-blue-600 text-white p-2 rounded-lg"><Send size={18}/></button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AIDemoAppV2;
             background: #333; color: #fff;
             padding: 8px; border-radius: 5px;
             font-size: 12px; margin-top: 25px;
