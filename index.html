@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med-Study OS v6.0 (High Fidelity)</title>
+    <title>Med-Study OS v7.0 (Full Content)</title>
     <style>
         /* [기본 스타일] */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
@@ -15,7 +15,7 @@
             box-shadow: 0 30px 80px rgba(0,0,0,0.2); border: 10px solid #222; display: flex; overflow: hidden;
         }
 
-        /* --- 왼쪽: PDF 뷰어 (Full Size) --- */
+        /* --- 왼쪽: PDF 뷰어 --- */
         .left-panel {
             flex: 1.5; background-color: #525659; display: flex; flex-direction: column;
             border-right: 1px solid #ddd; position: relative;
@@ -31,6 +31,7 @@
             display: flex; justify-content: center; align-items: center;
         }
 
+        /* 페이지 스타일 */
         .pdf-page {
             width: 95%; height: 95%; background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
             padding: 50px; position: absolute; display: none; flex-direction: column;
@@ -40,30 +41,33 @@
 
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
-        /* PDF 내부 스타일 (리얼하게) */
+        /* PDF 내부 타이포그래피 */
         .page-num { position: absolute; bottom: 20px; right: 20px; color: #999; font-size: 12px; }
-        .pdf-title { font-size: 26px; font-weight: 800; margin-bottom: 25px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 15px; }
-        .pdf-h2 { font-size: 18px; font-weight: 700; color: #0d47a1; margin-top: 20px; margin-bottom: 10px; border-left: 4px solid #2196f3; padding-left: 10px; }
-        .pdf-text { font-size: 15px; line-height: 1.7; color: #333; text-align: justify; margin-bottom: 15px; }
-        .highlight-box { background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; font-size: 14px; margin: 15px 0; }
-        .important { color: #d32f2f; font-weight: bold; }
+        .pdf-title { font-size: 24px; font-weight: 800; margin-bottom: 20px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 15px; }
+        .pdf-h2 { font-size: 17px; font-weight: 700; color: #0d47a1; margin-top: 15px; margin-bottom: 8px; border-left: 4px solid #2196f3; padding-left: 10px; }
+        .pdf-text { font-size: 14px; line-height: 1.6; color: #333; text-align: justify; margin-bottom: 12px; }
+        .highlight-box { background: #e3f2fd; padding: 12px; border-radius: 8px; border: 1px solid #bbdefb; font-size: 13px; margin: 10px 0; }
+        .warn-box { background: #ffebee; padding: 12px; border-radius: 8px; border: 1px solid #ef9a9a; font-size: 13px; margin: 10px 0; color: #c62828; }
+        .table-custom { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+        .table-custom th, .table-custom td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .table-custom th { background: #f5f5f5; color: #333; }
 
         /* 네비게이션 버튼 */
         .nav-btn {
             position: absolute; top: 50%; transform: translateY(-50%);
-            width: 50px; height: 50px; background: rgba(0,0,0,0.6); color: white;
+            width: 50px; height: 50px; background: rgba(0,0,0,0.5); color: white;
             border-radius: 50%; display: flex; justify-content: center; align-items: center;
             cursor: pointer; font-size: 24px; z-index: 100; transition: 0.2s; user-select: none;
         }
-        .nav-btn:hover { background: rgba(0,0,0,0.8); transform: translateY(-50%) scale(1.1); }
-        .nav-prev { left: 20px; } .nav-next { right: 20px; }
-        .nav-btn.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+        .nav-btn:hover { background: rgba(0,0,0,0.8); }
+        .nav-prev { left: 15px; } .nav-next { right: 15px; }
+        .nav-btn.disabled { opacity: 0.2; pointer-events: none; }
 
         /* 드래그된 메모 */
         .dropped-note {
-            position: absolute; width: 240px; background-color: #fff9c4; border-left: 5px solid #fbc02d;
-            padding: 12px; font-size: 13px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
-            border-radius: 0 8px 8px 0; cursor: pointer; z-index: 50; line-height: 1.4;
+            position: absolute; width: 200px; background-color: #fff9c4; border-left: 4px solid #fbc02d;
+            padding: 10px; font-size: 12px; color: #333; box-shadow: 2px 4px 8px rgba(0,0,0,0.15);
+            border-radius: 0 6px 6px 0; cursor: pointer; z-index: 50; line-height: 1.4;
         }
         .dropped-note:hover { transform: scale(1.05); }
 
@@ -72,56 +76,54 @@
             flex: 0.7; display: flex; flex-direction: column; background: #f8f9fa; border-left: 1px solid #ddd; position: relative;
         }
         .tabs { display: flex; border-bottom: 1px solid #ddd; background: white; flex-shrink: 0; }
-        .tab { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; font-weight: bold; color: #888; font-size: 14px; }
+        .tab { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; font-weight: bold; color: #888; font-size: 13px; }
         .tab.active { color: #2196f3; border-bottom: 3px solid #2196f3; background: #f0f7ff; }
         
         .tab-content-container { flex: 1; overflow-y: auto; position: relative; scroll-behavior: smooth; }
-        .tab-content { display: none; padding: 20px; padding-bottom: 80px; }
+        .tab-content { display: none; padding: 20px; padding-bottom: 90px; }
         .tab-content.active { display: block; }
 
         /* [채팅 스타일] */
-        .chat-container { display: flex; flex-direction: column; gap: 15px; }
+        .chat-container { display: flex; flex-direction: column; gap: 12px; }
         .msg-date { text-align: center; font-size: 11px; color: #aaa; margin: 15px 0; position: relative; }
-        .msg-date::before, .msg-date::after { content:""; position: absolute; top: 50%; width: 35%; height: 1px; background: #ddd; }
+        .msg-date::before, .msg-date::after { content:""; position: absolute; top: 50%; width: 30%; height: 1px; background: #ddd; }
         .msg-date::before { left: 0; } .msg-date::after { right: 0; }
         
-        .bubble { max-width: 90%; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; transition: background 0.5s; }
+        .bubble { max-width: 90%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; transition: background 0.5s; }
         .user-msg { align-self: flex-end; background: #e9ecef; color: #333; border-bottom-right-radius: 2px; }
-        .ai-msg { align-self: flex-start; background: #e3f2fd; color: #0d47a1; border-bottom-left-radius: 2px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .ai-msg strong { color: #1565c0; }
+        .ai-msg { align-self: flex-start; background: #e3f2fd; color: #0d47a1; border-bottom-left-radius: 2px; cursor: grab; }
+        .ai-msg:hover { box-shadow: 0 2px 5px rgba(33, 150, 243, 0.2); }
 
-        /* [족보 스타일 - Case Study] */
-        .jokbo-card { background: white; padding: 18px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; display: none; transition: 0.2s; }
-        .jokbo-card:hover { border-color: #2196f3; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        /* [족보 스타일] */
+        .jokbo-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; display: none; }
         .jokbo-card.visible { display: block; animation: fadeIn 0.5s; }
-        .badge { display: inline-block; padding: 3px 8px; background: #e8eaf6; color: #3949ab; font-size: 11px; border-radius: 4px; font-weight: bold; margin-bottom: 8px; margin-right: 5px; }
-        .badge.kmle { background: #ffebee; color: #c62828; }
-        .q-text { font-size: 13px; color: #333; line-height: 1.5; font-weight: 500; }
-        .options { margin-top: 10px; font-size: 12px; color: #666; padding-left: 10px; border-left: 2px solid #eee; }
+        .badge { display: inline-block; padding: 2px 6px; background: #e8eaf6; color: #3949ab; font-size: 11px; border-radius: 4px; font-weight: bold; margin-bottom: 5px; margin-right: 5px; }
+        .badge.exam { background: #ffebee; color: #c62828; }
+        .q-text { font-size: 13px; color: #333; font-weight: 600; line-height: 1.4; }
+        .options { margin-top: 8px; font-size: 12px; color: #555; padding-left: 8px; border-left: 2px solid #eee; }
 
         /* [스크립트 스타일] */
-        .script-segment { background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; transition: all 0.3s; }
-        .script-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #666; }
+        .script-segment { background: white; padding: 12px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 10px; transition: all 0.3s; }
+        .script-header { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; color: #666; }
         .speaker { font-weight: bold; color: #2196f3; }
-        .timestamp { background: #eee; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
-        .script-text { font-size: 14px; line-height: 1.6; color: #424242; }
-        .keyword { background: #fff9c4; padding: 0 2px; }
+        .timestamp { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-family: monospace; }
+        .script-text { font-size: 13px; line-height: 1.6; color: #424242; }
 
         /* [오디오 플레이어 바] */
         .audio-player-bar {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #ddd;
+            position: absolute; bottom: 0; left: 0; right: 0; height: 75px; background: white; border-top: 1px solid #ddd;
             display: flex; align-items: center; padding: 0 20px; gap: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             display: none; z-index: 200;
         }
         .audio-player-bar.visible { display: flex; }
-        .play-btn { width: 40px; height: 40px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+        .play-btn { width: 42px; height: 42px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; }
         .timeline-container { flex: 1; display: flex; flex-direction: column; gap: 6px; }
         .timeline-bar { height: 6px; background: #eee; border-radius: 3px; position: relative; overflow: hidden; }
         .timeline-progress { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #2196f3; transition: width 0.3s linear; }
         .time-info { display: flex; justify-content: space-between; font-size: 11px; color: #888; font-family: monospace; }
-        .speed-control { font-size: 14px; font-weight: bold; color: #555; cursor: pointer; flex-shrink: 0; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; }
+        .speed-control { font-size: 13px; font-weight: bold; color: #555; cursor: pointer; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; }
 
-        .active-context-bg { background-color: #fffde7 !important; border: 2px solid #fbc02d !important; box-shadow: 0 4px 12px rgba(251, 192, 45, 0.3); }
+        .active-context-bg { background-color: #fffde7 !important; border: 2px solid #fbc02d !important; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     </style>
@@ -131,7 +133,7 @@
 <div class="tablet-frame">
     <div class="left-panel">
         <div class="pdf-header">
-            <span>📚 [본과2] 내분비학_Ch04_당뇨병급성합병증.pdf</span>
+            <span>📚 [본과2] 내분비학_Ch04_DKA_HHS.pdf</span>
             <span id="headerPageNum">Page 13 / 60</span>
         </div>
         
@@ -141,78 +143,92 @@
 
             <div class="pdf-page active" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">13</div>
-                <div class="pdf-title">Chapter 4. 당뇨병성 케톤산증 (DKA)</div>
-                
-                <div class="pdf-h2">1. Pathophysiology (병태생리)</div>
-                <p class="pdf-text">
-                    DKA는 인슐린의 절대적 결핍(Absolute Deficiency)과 길항 호르몬(Glucagon, Cortisol, Catecholamines)의 과다 분비로 인해 발생한다. 
-                    <br>주요 3대 징후: <strong>1) 고혈당(Hyperglycemia), 2) 대사성 산증(Metabolic Acidosis), 3) 케톤증(Ketosis)</strong>.
-                </p>
-                
+                <div class="pdf-title">1. Diabetic Ketoacidosis (DKA)</div>
+                <div class="pdf-h2">Pathophysiology</div>
+                <p class="pdf-text">인슐린 결핍과 길항 호르몬 과다로 인한 급성 대사 합병증. 3대 징후: 고혈당, 대사성 산증, 케톤증.</p>
                 <div class="highlight-box">
-                    <strong>💡 Ketogenesis Mechanism</strong><br>
-                    Insulin ↓ → Lipolysis ↑ → Free Fatty Acid (FFA) ↑ → Liver Mitochondria → Beta-oxidation → 
-                    <span style="color:#d32f2f;">Ketone bodies (Acetoacetate, β-hydroxybutyrate)</span> 생성
+                    <strong>Ketogenesis:</strong> 지방분해(Lipolysis) 증가 → 간에서 유리지방산(FFA) 산화 → 케톤체 생성
                 </div>
-
-                <div class="pdf-h2">2. Precipitating Factors (유발 요인)</div>
-                <ul class="pdf-text" style="padding-left: 20px;">
-                    <li><strong>Infection (m/c):</strong> Pneumonia, UTI (30-50%)</li>
-                    <li>Inadequate Insulin therapy (환자의 임의 중단)</li>
-                    <li>New onset Type 1 DM</li>
-                </ul>
-                
-                <div class="dropped-note" style="top: 400px; left: 60%;" onclick="focusChat('chat-13-2')">
-                    📌 <strong>AI 핵심 요약</strong><br>
-                    감염(Infection)이 가장 흔한 원인입니다. 코티솔 등 스트레스 호르몬이 인슐린 저항성을 높이기 때문입니다.
-                </div>
+                <div class="dropped-note" style="top:350px; left:400px;" onclick="focusChat('chat-13-1')">📌 AI: 케톤체 생성 기전</div>
             </div>
-            
+
             <div class="pdf-page" id="p14" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">14</div>
-                <div class="pdf-title">Chapter 4. DKA - Clinical Manifestation</div>
-                
-                <div class="pdf-h2">3. Signs & Symptoms (증상 및 징후)</div>
-                <p class="pdf-text">
-                    초기에는 다뇨(Polyuria), 다음(Polydipsia), 체중 감소가 나타나며, 탈수(Dehydration)가 진행되면 저혈압, 빈맥이 발생한다.
-                    <br>위장관 증상으로 <strong>오심, 구토, 복통(Abdominal pain)</strong>이 흔하여 '급성 복증(Acute Abdomen)'과 감별이 필요하다.
-                </p>
-
-                <div class="highlight-box" style="background-color: #fff3e0; border-color: #ffe0b2;">
-                    <strong>★ Kussmaul Respiration (쿠스마울 호흡)</strong><br>
-                    대사성 산증(Metabolic Acidosis)에 대한 호흡성 보상 기전으로, 깊고 빠른 호흡(Deep & Rapid breathing)이 특징적이다. 
-                    호기 시 썩은 사과 냄새(Fruity breath odor)가 난다.
-                </div>
-
-                <div class="pdf-h2">4. Lab Findings (검사 소견)</div>
-                <p class="pdf-text">
-                    - Glucose > 250 mg/dL<br>
-                    - <span class="important">High Anion Gap Metabolic Acidosis (HAGMA)</span>: Anion Gap > 12 mEq/L<br>
-                    - Serum Ketone (+) / Urine Ketone (+++)
-                </p>
+                <div class="pdf-title">2. Clinical Manifestations</div>
+                <div class="pdf-h2">Symptoms</div>
+                <p class="pdf-text">다뇨, 다음, 오심, 구토, 복통(Acute Abdomen 유사). 탈수 증상(빈맥, 저혈압).</p>
+                <div class="highlight-box"><strong>Kussmaul Breathing:</strong> 산증 보상을 위한 과호흡. 과일 냄새(Fruity odor).</div>
             </div>
-            
+
             <div class="pdf-page" id="p15" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">15</div>
-                <div class="pdf-title">Chapter 4. DKA - Management</div>
-                
-                <div class="pdf-h2">5. Treatment Protocol (치료 원칙)</div>
-                <p class="pdf-text">
-                    성공적인 치료를 위해 다음 순서를 준수해야 한다: 
-                    <br><strong>Fluid → Potassium($K^+$) → Insulin</strong>
-                </p>
+                <div class="pdf-title">3. Management: Fluid & Insulin</div>
+                <div class="pdf-h2">Protocol</div>
+                <p class="pdf-text">1. Fluid (NS 1L/hr) → 2. Potassium Check → 3. Insulin.</p>
+                <div class="warn-box">⚠️ K+ < 3.3 이면 Insulin 금기! (심정지 위험)</div>
+            </div>
 
-                <div class="pdf-text">
-                    <strong>1) Fluid Resuscitation (수액 요법)</strong><br>
-                    - Initial: 0.9% Normal Saline 1L/hr (첫 1~2시간)<br>
-                    - 혈당 < 200mg/dL 도달 시: 5% Dextrose 포함 수액으로 변경 (저혈당 방지)
-                </div>
+            <div class="pdf-page" id="p16" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">16</div>
+                <div class="pdf-title">3. Management: Electrolytes</div>
+                <div class="pdf-h2">Bicarbonate ($HCO_3^-$)</div>
+                <p class="pdf-text">루틴 투여는 권장되지 않음. Paradoxical CNS acidosis 유발 가능.</p>
+                <div class="highlight-box"><strong>적응증:</strong> pH < 6.9 로 심각한 산증일 때만 고려.</div>
+                <div class="dropped-note" style="top:300px; left:350px;" onclick="focusChat('chat-16-1')">📌 AI: 비본 투여 기준 (pH 6.9)</div>
+            </div>
 
-                <div class="highlight-box" style="background-color: #ffebee; border-color: #ffcdd2;">
-                    <strong>⚠️ WARNING: Potassium ($K^+$) Correction</strong><br>
-                    인슐린은 세포 내로 $K^+$를 이동시켜 <span class="important">심한 저칼륨혈증(Hypokalemia)</span>을 유발할 수 있다.<br>
-                    반드시 $K^+$ > 3.3 mEq/L 임을 확인 후 인슐린을 시작한다.
-                </div>
+            <div class="pdf-page" id="p17" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">17</div>
+                <div class="pdf-title">4. Complications</div>
+                <div class="pdf-h2">Cerebral Edema (뇌부종)</div>
+                <p class="pdf-text">소아 DKA의 주요 사망 원인. 급격한 수액 공급이나 삼투압 저하가 원인.</p>
+                <div class="warn-box">증상: 치료 중 갑작스런 두통, 의식 저하, 서맥 (Cushing reflex).</div>
+            </div>
+
+            <div class="pdf-page" id="p18" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">18</div>
+                <div class="pdf-title">5. HHS (Hyperosmolar Hyperglycemic State)</div>
+                <div class="pdf-h2">Definition</div>
+                <p class="pdf-text">제2형 당뇨 노인에게 호발. 심한 고혈당(>600), 고삼투압(>320)이 특징이나 <strong>케톤산증은 없다.</strong></p>
+                <div class="highlight-box">사망률: DKA (<1%) vs HHS (10~20%) → HHS가 더 치명적.</div>
+                <div class="dropped-note" style="top:420px; left:400px;" onclick="focusChat('chat-18-1')">📌 AI: HHS가 더 위험한 이유</div>
+            </div>
+
+            <div class="pdf-page" id="p19" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">19</div>
+                <div class="pdf-title">6. Diagnosis of HHS</div>
+                <table class="table-custom">
+                    <tr><th>구분</th><th>DKA</th><th>HHS</th></tr>
+                    <tr><td>Plasma Glucose</td><td>> 250</td><td>> 600</td></tr>
+                    <tr><td>pH</td><td>< 7.3</td><td>> 7.3</td></tr>
+                    <tr><td>Ketones</td><td>Positive</td><td>Small / None</td></tr>
+                    <tr><td>Osmolality</td><td>Variable</td><td>> 320</td></tr>
+                </table>
+                <p class="pdf-text" style="margin-top:10px;">HHS에서는 소량의 인슐린이 지방분해(Lipolysis)를 억제하므로 케톤이 안 생긴다.</p>
+            </div>
+
+            <div class="pdf-page" id="p20" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">20</div>
+                <div class="pdf-title">7. Treatment of HHS</div>
+                <div class="pdf-h2">Fluid Replacement</div>
+                <p class="pdf-text">DKA보다 탈수가 훨씬 심함 (수분 결핍 9L 이상). 적극적인 수액 공급이 중요함.</p>
+                <div class="highlight-box">Na+ 수치에 따라 수액 종류 결정 (Normal vs Half Saline).</div>
+            </div>
+
+            <div class="pdf-page" id="p21" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">21</div>
+                <div class="pdf-title">8. Hypoglycemia (저혈당)</div>
+                <div class="pdf-h2">Whipple's Triad</div>
+                <p class="pdf-text">1) 저혈당 증상 (식은땀, 떨림, 심계항진)<br>2) 혈장 포도당 < 70 mg/dL<br>3) 포도당 투여 후 증상 호전</p>
+                <div class="warn-box">치료: 의식 있으면 주스/사탕, 의식 없으면 50% 포도당(DW) 정주.</div>
+            </div>
+
+            <div class="pdf-page" id="p22" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="page-num">22</div>
+                <div class="pdf-title">9. Sick Day Management</div>
+                <div class="pdf-h2">Patient Education</div>
+                <p class="pdf-text">감기, 장염 등으로 식사를 못 하더라도 <strong>인슐린을 절대 중단하면 안 됨.</strong> (스트레스 호르몬 때문에 혈당 오름)</p>
+                <div class="highlight-box">4시간마다 자가 혈당/케톤 측정 및 수분 섭취 교육.</div>
             </div>
         </div>
     </div>
@@ -227,95 +243,104 @@
         <div class="tab-content-container">
             <div id="tab-chat" class="tab-content active">
                 <div class="chat-container">
-                    <div class="msg-date">Page 13 학습 중 질문</div>
-                    <div class="bubble user-msg">DKA랑 HHS 차이점이 헷갈려. 표로 정리해줘.</div>
-                    <div class="bubble ai-msg" id="chat-13-1" draggable="true" ondragstart="drag(event)">
-                        <strong>[DKA vs HHS 감별 포인트]</strong><br>
-                        1. <strong>DKA (주로 1형)</strong>: 산증(pH<7.3), 케톤(+), 복통 흔함.<br>
-                        2. <strong>HHS (주로 2형)</strong>: 심한 고혈당(>600), 산증 없음, 의식 저하 뚜렷.<br>
-                        가장 큰 차이는 <strong>'케톤산증 유무'</strong>입니다.
-                    </div>
-                    <div class="bubble user-msg">유발 요인 중에 m/c가 뭐야?</div>
-                    <div class="bubble ai-msg" id="chat-13-2" draggable="true" ondragstart="drag(event)">
-                        가장 흔한 원인(most common)은 <strong>감염(Infection)</strong>입니다. 폐렴이나 요로감염이 있을 때 스트레스 호르몬이 나와 인슐린 작용을 방해합니다.
-                    </div>
+                    <div class="msg-date">Page 13</div>
+                    <div class="bubble user-msg">DKA 기전 요약해줘.</div>
+                    <div class="bubble ai-msg" id="chat-13-1" draggable="true" ondragstart="drag(event)">인슐린 부족 → 지방 분해 → 유리지방산 → 간에서 <strong>케톤체(산성)</strong> 생성 → 산증 유발.</div>
+                    
+                    <div class="msg-date">Page 14</div>
+                    <div class="bubble user-msg">Anion Gap 공식은?</div>
+                    <div class="bubble ai-msg" id="chat-14-1" draggable="true" ondragstart="drag(event)">$Na^+ - (Cl^- + HCO_3^-)$. DKA는 High AG 산증입니다.</div>
 
-                    <div class="msg-date">Page 14 학습 중 질문</div>
-                    <div class="bubble user-msg">Anion Gap 계산 공식이 뭐였지?</div>
-                    <div class="bubble ai-msg" id="chat-14-1" draggable="true" ondragstart="drag(event)">
-                        <strong>Anion Gap = $Na^+ - (Cl^- + HCO_3^-)$</strong><br>
-                        정상치는 12±2 입니다. DKA에서는 케톤산(음이온)이 증가하여 <strong>High Anion Gap</strong> 산증이 나타납니다.
-                    </div>
-                    <div class="bubble user-msg">복통은 왜 생기는 거야?</div>
-                    <div class="bubble ai-msg" id="chat-14-2" draggable="true" ondragstart="drag(event)">
-                        정확한 기전은 불명확하나, <strong>대사성 산증, 탈수, 전해질 불균형</strong>으로 인한 장 운동 저하(Ileus)가 원인으로 추정됩니다. 치료하면 호전됩니다.
-                    </div>
+                    <div class="msg-date">Page 15</div>
+                    <div class="bubble user-msg">인슐린 먼저 주면 왜 안 돼?</div>
+                    <div class="bubble ai-msg" id="chat-15-1" draggable="true" ondragstart="drag(event)">저칼륨혈증으로 <strong>심정지</strong>가 올 수 있고, 탈수가 악화될 수 있습니다. <strong>수액이 1순위</strong>입니다.</div>
 
-                    <div class="msg-date">Page 15 학습 중 질문</div>
-                    <div class="bubble user-msg">치료할 때 인슐린 먼저 주면 안 돼?</div>
-                    <div class="bubble ai-msg" id="chat-15-1" draggable="true" ondragstart="drag(event)">
-                        <strong>절대 안 됩니다!</strong><br>
-                        환자는 심한 탈수 상태이므로 <strong>수액(NS) 공급이 0순위</strong>입니다. 또한 인슐린이 칼륨을 세포 안으로 밀어넣어 <strong>치명적인 부정맥</strong>이 올 수 있으므로 $K^+$ 수치 확인이 필수입니다.
-                    </div>
+                    <div class="msg-date">Page 16</div>
+                    <div class="bubble user-msg">비본(Bicarb)은 언제 써?</div>
+                    <div class="bubble ai-msg" id="chat-16-1" draggable="true" ondragstart="drag(event)">루틴하게 쓰지 않습니다. <strong>pH 6.9 미만</strong>의 심각한 산증일 때만 고려합니다.</div>
+                    <div class="bubble ai-msg" id="chat-16-2" draggable="true" ondragstart="drag(event)">부작용으로 저칼륨혈증 악화, 조직 산소 공급 저하가 있습니다.</div>
+
+                    <div class="msg-date">Page 17</div>
+                    <div class="bubble user-msg">치료 중에 애가 머리 아프대.</div>
+                    <div class="bubble ai-msg" id="chat-17-1" draggable="true" ondragstart="drag(event)"><strong>뇌부종(Cerebral Edema)</strong>을 의심해야 합니다. 즉시 Mannitol 투여하고 수액 속도를 줄이세요.</div>
+
+                    <div class="msg-date">Page 18</div>
+                    <div class="bubble user-msg">HHS가 DKA보다 왜 더 잘 죽어?</div>
+                    <div class="bubble ai-msg" id="chat-18-1" draggable="true" ondragstart="drag(event)">고령 환자가 많고, 증상이 늦게 나타나 <strong>탈수가 극심하기 때문</strong>입니다.</div>
+
+                    <div class="msg-date">Page 19</div>
+                    <div class="bubble user-msg">HHS는 왜 케톤이 없어?</div>
+                    <div class="bubble ai-msg" id="chat-19-1" draggable="true" ondragstart="drag(event)">제2형 당뇨라 <strong>소량의 인슐린</strong>이 남아있어, 지방분해(Lipolysis)를 억제하기 때문입니다.</div>
+
+                    <div class="msg-date">Page 20</div>
+                    <div class="bubble user-msg">HHS 수액 치료 차이점?</div>
+                    <div class="bubble ai-msg" id="chat-20-1" draggable="true" ondragstart="drag(event)">DKA보다 수분 결핍량이 훨씬 많아 더 많은 양의 수액이 필요합니다. Na 수치에 따라 0.45% Saline을 쓰기도 합니다.</div>
+
+                    <div class="msg-date">Page 21</div>
+                    <div class="bubble user-msg">Whipple's triad?</div>
+                    <div class="bubble ai-msg" id="chat-21-1" draggable="true" ondragstart="drag(event)">저혈당 증상 + 혈당 70 미만 + 당 투여 후 호전. 이 3가지입니다.</div>
+
+                    <div class="msg-date">Page 22</div>
+                    <div class="bubble user-msg">밥 안 먹으면 인슐린 끊으라고 해?</div>
+                    <div class="bubble ai-msg" id="chat-22-1" draggable="true" ondragstart="drag(event)">절대 안 됩니다! 아프면 스트레스 호르몬 때문에 혈당이 오르므로 <strong>인슐린 유지하고 케톤 측정</strong>해야 합니다.</div>
                 </div>
             </div>
 
             <div id="tab-jokbo" class="tab-content">
-                <div style="color:#666; font-size:13px; margin-bottom:15px; font-weight:bold;">현재 페이지 관련 기출 (최근 3년)</div>
+                <div style="color:#666; font-size:13px; margin-bottom:15px; font-weight:bold;">페이지별 관련 기출</div>
                 
-                <div class="jokbo-card p13-item visible">
-                    <span class="badge kmle">23년 KMLE</span> <span class="badge">내분비</span>
-                    <div class="q-text">Q. 제1형 당뇨병 환자가 감기 증상 후 의식 저하로 내원했다. 소변 케톤(3+)이었다. 이 환자의 병태생리에 대한 설명으로 옳은 것은?</div>
-                    <div class="options">
-                        ① 인슐린 분비 증가<br>
-                        ② 유리지방산(FFA)의 산화 감소<br>
-                        ③ <strong>Glucagon 등 길항 호르몬 증가</strong>
-                    </div>
-                </div>
-
-                <div class="jokbo-card p14-item">
-                    <span class="badge kmle">22년 임종평</span> <span class="badge">증상</span>
-                    <div class="q-text">Q. 24세 남자가 복통과 구토를 주소로 내원했다. 호흡 수는 32회/분으로 깊고 빨랐으며, 호기 시 과일 냄새가 났다. 진단은?</div>
-                    <div class="options">
-                        ① 급성 췌장염 &nbsp; ② <strong>당뇨병성 케톤산증</strong> &nbsp; ③ 위궤양 천공
-                    </div>
-                </div>
-
-                <div class="jokbo-card p15-item">
-                    <span class="badge kmle">24년 중간</span> <span class="badge important">★필수</span>
-                    <div class="q-text">Q. DKA 환자의 초기 혈액 검사 결과 $K^+$ 2.8 mEq/L 였다. 가장 우선적으로 시행해야 할 처치는?</div>
-                    <div class="options">
-                        ① Regular Insulin IV bolus<br>
-                        ② <strong>KCl 포함 수액 투여 및 인슐린 보류</strong><br>
-                        ③ Bicarbonate 투여
-                    </div>
-                </div>
+                <div class="jokbo-card p13-item visible"><span class="badge exam">23년</span> Q. DKA 환자의 소변 케톤 양성의 원인 물질은? (답: Beta-hydroxybutyrate)</div>
+                <div class="jokbo-card p14-item"><span class="badge exam">22년</span> Q. 과일 냄새, 깊은 호흡. 복통 호소 환자의 진단은? (답: DKA)</div>
+                <div class="jokbo-card p15-item"><span class="badge exam">24년</span> Q. K+ 2.8인 환자의 우선 처치는? (답: KCl 투여 및 인슐린 보류)</div>
+                <div class="jokbo-card p16-item"><span class="badge exam">21년</span> Q. pH 7.1 인 DKA 환자에게 중탄산염(Bicarb) 투여 여부는? (답: 투여하지 않는다)</div>
+                <div class="jokbo-card p17-item"><span class="badge exam">20년</span> Q. 소아 DKA 치료 중 두통과 서맥 발생. 조치는? (답: Mannitol 투여)</div>
+                <div class="jokbo-card p18-item"><span class="badge exam">23년</span> Q. 70세 노인, 혈당 800, pH 7.35, 의식 혼미. 진단은? (답: HHS)</div>
+                <div class="jokbo-card p19-item"><span class="badge exam">19년</span> Q. DKA와 HHS의 감별점 중 틀린 것은? (답: HHS는 케톤산증이 심하다 - X)</div>
+                <div class="jokbo-card p20-item"><span class="badge exam">22년</span> Q. Na 155인 HHS 환자의 초기 수액은? (답: 0.45% Saline 고려)</div>
+                <div class="jokbo-card p21-item"><span class="badge exam">24년</span> Q. 인슐린 치료 중 식은땀과 떨림. 가장 먼저 할 일은? (답: 혈당 측정)</div>
+                <div class="jokbo-card p22-item"><span class="badge exam">18년</span> Q. 감기 걸린 1형 당뇨 환자 교육 내용은? (답: 인슐린 중단하지 말 것)</div>
             </div>
 
             <div id="tab-script" class="tab-content">
                 <div class="script-segment" id="script-13-1">
-                    <div class="script-header"><span class="speaker">김OO 교수님</span><span class="timestamp">09:32</span></div>
-                    <div class="script-text">
-                        자, <span class="keyword">DKA는 응급입니다.</span> 정의부터 확실히 합시다. 인슐린이 '절대적'으로 부족한 거예요. 
-                        그러면 우리 몸은 굶고 있다고 착각해서 지방을 태웁니다. 이때 부산물로 <strong>'케톤체'</strong>가 나와서 피가 산성이 되는 거죠.
-                    </div>
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">09:30</span></div>
+                    <div class="script-text">DKA 정의 중요합니다. 인슐린이 없어서 지방 태우다가 몸이 산성 되는 거예요.</div>
                 </div>
-
                 <div class="script-segment" id="script-14-1">
-                    <div class="script-header"><span class="speaker">김OO 교수님</span><span class="timestamp">09:48</span></div>
-                    <div class="script-text">
-                        환자가 응급실에 들어오는데 <strong>숨을 헐떡거린다(Kussmaul)</strong>, 그리고 입에서 술 냄새 같은 <strong>과일 향</strong>이 난다? 
-                        그럼 바로 혈당부터 찔러봐야 합니다. 그리고 배 아프다고 맹장염으로 오진하면 안 돼요. DKA도 복통 심합니다.
-                    </div>
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">09:45</span></div>
+                    <div class="script-text">쿠스마울 호흡, 아세톤 냄새 기억하세요. 그리고 배 아프다고 맹장수술 보내면 안 됩니다.</div>
                 </div>
-
                 <div class="script-segment" id="script-15-1">
-                    <div class="script-header"><span class="speaker">김OO 교수님</span><span class="timestamp">10:15</span></div>
-                    <div class="script-text">
-                        <span class="keyword">이거 국시 단골 문제입니다. 별표 치세요.</span> 치료 순서! 인슐린부터 주면 환자 죽습니다. 
-                        탈수 교정이 먼저니까 <strong>수액(Normal Saline)</strong> 콸콸 부어주고, 
-                        꼭 <strong>칼륨(K) 수치 확인</strong>하고 인슐린 주세요. 안 그러면 부정맥 옵니다.
-                    </div>
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">10:05</span></div>
+                    <div class="script-text">치료 순서 족보 단골입니다. 수액 먼저! 칼륨 확인하고 인슐린! 사람 죽이지 맙시다.</div>
+                </div>
+                <div class="script-segment" id="script-16-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">10:20</span></div>
+                    <div class="script-text">비본(Bicarb) 함부로 쓰지 마세요. pH 6.9 안 되면 쳐다보지도 마.</div>
+                </div>
+                <div class="script-segment" id="script-17-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">10:35</span></div>
+                    <div class="script-text">애들 치료하다가 갑자기 머리 아프다? 뇌부종입니다. 물 너무 빨리 주면 뇌 터져요.</div>
+                </div>
+                <div class="script-segment" id="script-18-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">10:50</span></div>
+                    <div class="script-text">HHS는 할머니들이 요양병원에서 옵니다. 혈당 1000 찍고 와요. 사망률 훨씬 높습니다.</div>
+                </div>
+                <div class="script-segment" id="script-19-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">11:05</span></div>
+                    <div class="script-text">HHS는 왜 케톤 없냐? 인슐린이 쥐꼬리만큼은 있어서 지방 분해는 막아주는 겁니다.</div>
+                </div>
+                <div class="script-segment" id="script-20-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">11:15</span></div>
+                    <div class="script-text">HHS 환자는 바짝 말라있어요. 물(수액)을 들이부어야 합니다.</div>
+                </div>
+                <div class="script-segment" id="script-21-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">11:30</span></div>
+                    <div class="script-text">치료 잘하다가 저혈당으로 보내는 경우 많아요. 휩플 트라이어드(Whipple's triad) 외우세요.</div>
+                </div>
+                <div class="script-segment" id="script-22-1">
+                    <div class="script-header"><span class="speaker">교수님</span><span class="timestamp">11:45</span></div>
+                    <div class="script-text">Sick Day Rule 환자 교육 필수입니다. 밥 안 먹어도 주사는 놔야 한다고 꼭 말해주세요.</div>
                 </div>
                  <div style="height: 200px;"></div>
             </div>
@@ -325,60 +350,60 @@
             <div class="play-btn">▶</div>
             <div class="timeline-container">
                 <div class="timeline-bar"><div class="timeline-progress" id="audioProgress"></div></div>
-                <div class="time-info"><span id="currentTime">00:00</span><span>50:00</span></div>
+                <div class="time-info"><span id="currentTime">09:30</span><span>12:00</span></div>
             </div>
-            <div class="speed-control">1.5x</div>
+            <div class="speed-control">1.2x</div>
         </div>
     </div>
 </div>
 
 <script>
-    // [전역 변수]
-    const pages = ['p13', 'p14', 'p15'];
+    // [설정: 10페이지 데이터]
+    const pages = ['p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20', 'p21', 'p22'];
     let currentPageIdx = 0;
 
-    // [기능 1: 페이지 변경]
+    // [기능: 페이지 이동]
     function changePage(direction) {
         const nextIdx = currentPageIdx + direction;
         if (nextIdx < 0 || nextIdx >= pages.length) return;
 
-        // 현재 페이지 숨김
         document.getElementById(pages[currentPageIdx]).classList.remove('active');
-        
-        // 새 페이지 업데이트
         currentPageIdx = nextIdx;
         const newPageId = pages[currentPageIdx];
         document.getElementById(newPageId).classList.add('active');
         
-        // UI 업데이트
         const pageNum = newPageId.replace('p', '');
         document.getElementById('headerPageNum').innerText = `Page ${pageNum} / 60`;
         
         document.querySelector('.nav-prev').classList.toggle('disabled', currentPageIdx === 0);
         document.querySelector('.nav-next').classList.toggle('disabled', currentPageIdx === pages.length - 1);
 
-        // 싱크 실행
         syncRightPanel(pageNum);
     }
 
-    // [기능 2: 컨텐츠 동기화]
+    // [기능: 컨텐츠 동기화 (10페이지 전체 매핑)]
     function syncRightPanel(pageNum) {
         // 족보 필터링
         document.querySelectorAll('.jokbo-card').forEach(card => card.classList.remove('visible'));
         document.querySelectorAll(`.p${pageNum}-item`).forEach(card => card.classList.add('visible'));
 
-        // 싱크 데이터 맵핑
+        // 싱크 데이터 (ID 및 타임라인 매핑)
         const syncMap = {
-            '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:32', progress: '18%' },
-            '14': { chat: 'chat-14-1', script: 'script-14-1', time: '09:48', progress: '35%' },
-            '15': { chat: 'chat-15-1', script: 'script-15-1', time: '10:15', progress: '60%' }
+            '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:30', progress: '5%' },
+            '14': { chat: 'chat-14-1', script: 'script-14-1', time: '09:45', progress: '15%' },
+            '15': { chat: 'chat-15-1', script: 'script-15-1', time: '10:05', progress: '25%' },
+            '16': { chat: 'chat-16-1', script: 'script-16-1', time: '10:20', progress: '35%' },
+            '17': { chat: 'chat-17-1', script: 'script-17-1', time: '10:35', progress: '45%' },
+            '18': { chat: 'chat-18-1', script: 'script-18-1', time: '10:50', progress: '55%' },
+            '19': { chat: 'chat-19-1', script: 'script-19-1', time: '11:05', progress: '65%' },
+            '20': { chat: 'chat-20-1', script: 'script-20-1', time: '11:15', progress: '75%' },
+            '21': { chat: 'chat-21-1', script: 'script-21-1', time: '11:30', progress: '85%' },
+            '22': { chat: 'chat-22-1', script: 'script-22-1', time: '11:45', progress: '95%' }
         };
 
         const target = syncMap[pageNum];
         if (target) {
             const activeTabId = document.querySelector('.tab-content.active').id;
-            
-            // 해당 탭의 타겟 요소 ID 찾기
             let targetElId = null;
             if (activeTabId === 'tab-chat') targetElId = target.chat;
             else if (activeTabId === 'tab-script') targetElId = target.script;
@@ -386,62 +411,52 @@
             if (targetElId) {
                 const targetEl = document.getElementById(targetElId);
                 if (targetEl) {
-                    // 부드러운 스크롤 이동
                     const container = document.querySelector('.tab-content-container');
                     container.scrollTo({ top: targetEl.offsetTop - 80, behavior: 'smooth' });
                     highlightEffect(targetEl);
                 }
             }
-            // 플레이어 UI 업데이트
             document.getElementById('currentTime').innerText = target.time;
             document.getElementById('audioProgress').style.width = target.progress;
         }
     }
 
-    // 하이라이트 효과
     function highlightEffect(element) {
         document.querySelectorAll('.active-context-bg').forEach(el => el.classList.remove('active-context-bg'));
         element.classList.add('active-context-bg');
         setTimeout(() => { element.classList.remove('active-context-bg'); }, 2000);
     }
 
-    // [기능 3: 탭 전환]
+    // [기능: 탭 전환]
     function showTab(tabId) {
-        // 탭 컨텐츠 전환
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         
-        // 탭 버튼 스타일 전환
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         const tabs = ['tab-chat', 'tab-jokbo', 'tab-script'];
         document.querySelectorAll('.tab')[tabs.indexOf(tabId)].classList.add('active');
 
-        // 플레이어 표시 여부
         const player = document.getElementById('audioPlayer');
         if (tabId === 'tab-script') player.classList.add('visible');
         else player.classList.remove('visible');
         
-        // 현재 페이지 기준으로 재싱크
         const currentPageNum = pages[currentPageIdx].replace('p', '');
         syncRightPanel(currentPageNum);
     }
 
-    // [기능 4: Drag & Drop]
+    // [기능: Drag & Drop]
     function drag(ev) { ev.dataTransfer.setData("chatId", ev.target.id); ev.dataTransfer.setData("text", ev.target.innerText); }
     function allowDrop(ev) { ev.preventDefault(); }
     function drop(ev) {
         ev.preventDefault();
         const chatId = ev.dataTransfer.getData("chatId"); 
-        // HTML 태그 제거하고 텍스트만 추출
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = ev.dataTransfer.getData("text");
+        const tempDiv = document.createElement("div"); tempDiv.innerHTML = ev.dataTransfer.getData("text");
         const cleanText = tempDiv.textContent || tempDiv.innerText || "";
-        
         const rect = ev.currentTarget.getBoundingClientRect();
         
         const note = document.createElement("div");
         note.className = "dropped-note"; 
-        note.innerHTML = `📌 <strong>AI 메모</strong><br>${cleanText.substring(0, 35)}...`;
+        note.innerHTML = `📌 <strong>AI 메모</strong><br>${cleanText.substring(0, 30)}...`;
         note.style.left = (ev.clientX - rect.left) + "px"; 
         note.style.top = (ev.clientY - rect.top) + "px";
         note.onclick = () => focusChat(chatId);
