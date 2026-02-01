@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med-Study OS : Context Sync Demo</title>
+    <title>Med-Study OS Final Demo v4.0</title>
     <style>
         /* [기본 스타일] */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
@@ -11,132 +11,89 @@
 
         /* 태블릿 프레임 */
         .tablet-frame {
-            width: 1400px;
-            height: 900px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.2);
-            border: 10px solid #222;
-            display: flex;
-            overflow: hidden;
+            width: 1400px; height: 900px; background: white; border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.2); border: 10px solid #222; display: flex; overflow: hidden;
         }
 
         /* --- 왼쪽: PDF 뷰어 --- */
         .left-panel {
-            flex: 1.3;
-            background-color: #525659;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #ddd;
-            position: relative;
+            flex: 1.3; background-color: #525659; display: flex; flex-direction: column;
+            border-right: 1px solid #ddd; position: relative;
         }
-        
-        /* 현재 페이지 표시기 (Floating Badge) */
         .current-page-badge {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 100;
-            backdrop-filter: blur(4px);
-            transition: all 0.3s;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; z-index: 100; backdrop-filter: blur(4px);
         }
-
         .pdf-scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 40px; 
-            scroll-behavior: smooth;
+            flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 40px; scroll-behavior: smooth;
         }
-        
-        /* 페이지 스타일 */
         .pdf-page {
-            width: 100%;
-            max-width: 700px;
-            height: 900px; /* 페이지 높이 */
-            background: white;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            position: relative;
-            padding: 50px;
-            transition: transform 0.3s;
+            width: 100%; max-width: 700px; height: 900px; background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; padding: 50px; transition: transform 0.3s;
         }
-        /* 활성화된 페이지 강조 */
-        .pdf-page.active-view {
-            border: 4px solid #2196f3;
-            transform: scale(1.02);
-        }
-
+        .pdf-page.active-view { border: 4px solid #2196f3; transform: scale(1.02); }
         .page-num { position: absolute; bottom: 20px; right: 20px; color: #999; }
         .pdf-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
         .pdf-text { font-size: 16px; line-height: 1.8; color: #444; text-align: justify; margin-bottom: 20px; }
 
-        /* 드래그된 노트 스타일 */
+        /* 드래그된 메모 */
         .dropped-note {
-            position: absolute;
-            width: 220px;
-            background-color: #fff9c4;
-            border-left: 5px solid #fbc02d;
-            padding: 10px;
-            font-size: 12px;
-            color: #333;
-            box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
-            border-radius: 0 8px 8px 0;
-            cursor: pointer;
-            z-index: 100;
+            position: absolute; width: 220px; background-color: #fff9c4; border-left: 5px solid #fbc02d;
+            padding: 10px; font-size: 12px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
+            border-radius: 0 8px 8px 0; cursor: pointer; z-index: 100;
         }
         .dropped-note:hover { transform: scale(1.05); }
 
         /* --- 오른쪽: 패널 --- */
         .right-panel {
-            flex: 0.7;
-            display: flex;
-            flex-direction: column;
-            background: #f8f9fa;
-            border-left: 1px solid #ddd;
+            flex: 0.7; display: flex; flex-direction: column; background: #f8f9fa; border-left: 1px solid #ddd; position: relative;
         }
-        
-        /* 탭 메뉴 */
-        .tabs { display: flex; border-bottom: 1px solid #ddd; background: white; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #888; }
+        .tabs { display: flex; border-bottom: 1px solid #ddd; background: white; flex-shrink: 0; }
+        .tab { flex: 1; padding: 15px 10px; text-align: center; cursor: pointer; font-weight: bold; color: #888; font-size: 14px; }
         .tab.active { color: #2196f3; border-bottom: 3px solid #2196f3; background: #f0f7ff; }
         
-        .tab-content { flex: 1; overflow-y: auto; display: none; padding: 20px; }
+        /* 탭 컨텐츠 영역 (스크롤 가능) */
+        .tab-content-container { flex: 1; overflow-y: auto; position: relative; }
+        .tab-content { display: none; padding: 20px; padding-bottom: 80px; /* 플레이어 공간 확보 */ }
         .tab-content.active { display: block; }
 
-        /* [채팅] 스타일 */
-        .chat-container { display: flex; flex-direction: column; gap: 15px; padding-bottom: 50px; }
+        /* [채팅 스타일] */
+        .chat-container { display: flex; flex-direction: column; gap: 15px; }
         .msg-date { text-align: center; font-size: 12px; color: #aaa; margin: 20px 0; position: relative; }
-        .msg-date::before { content:""; position: absolute; top: 50%; left: 0; width: 30%; height: 1px; background: #ddd; }
-        .msg-date::after { content:""; position: absolute; top: 50%; right: 0; width: 30%; height: 1px; background: #ddd; }
-
-        .bubble { 
-            max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; 
-            transition: background 0.5s; /* 부드러운 하이라이트 전환 */
-        }
+        .msg-date::before, .msg-date::after { content:""; position: absolute; top: 50%; width: 30%; height: 1px; background: #ddd; }
+        .msg-date::before { left: 0; } .msg-date::after { right: 0; }
+        .bubble { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; transition: background 0.5s; }
         .user-msg { align-self: flex-end; background: #e9ecef; color: #333; border-bottom-right-radius: 2px; }
         .ai-msg { align-self: flex-start; background: #e3f2fd; color: #0d47a1; border-bottom-left-radius: 2px; cursor: grab; }
-        
-        /* 현재 페이지와 연관된 채팅 강조 효과 */
-        .active-context-bg {
-            background-color: #fff176 !important; /* 노란색 강조 */
-            box-shadow: 0 0 15px rgba(255, 241, 118, 0.5);
-            border: 2px solid #fbc02d;
-        }
 
-        /* [족보] 스타일 */
-        .jokbo-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; display: none; /* 기본 숨김 */ }
+        /* [족보 스타일] */
+        .jokbo-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; display: none; }
         .jokbo-card.visible { display: block; animation: fadeIn 0.5s; }
         .badge { display: inline-block; padding: 3px 8px; background: #ffebee; color: #c62828; font-size: 11px; border-radius: 4px; font-weight: bold; margin-bottom: 5px;}
 
+        /* [스크립트 스타일] (신규 추가) */
+        .script-segment { background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; transition: all 0.3s; }
+        .script-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #666; }
+        .speaker { font-weight: bold; color: #2196f3; }
+        .timestamp { background: #eee; padding: 2px 6px; border-radius: 4px; }
+        .script-text { font-size: 14px; line-height: 1.6; color: #333; }
+        
+        /* [오디오 플레이어 바] (신규 추가 - 스케치 반영) */
+        .audio-player-bar {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #ddd;
+            display: flex; align-items: center; padding: 0 20px; gap: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            display: none; /* 기본 숨김, 스크립트 탭에서만 표시 */
+        }
+        .audio-player-bar.visible { display: flex; }
+        .play-btn { width: 40px; height: 40px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; cursor: pointer; flex-shrink: 0; }
+        .timeline-container { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+        .timeline-bar { height: 6px; background: #eee; border-radius: 3px; position: relative; }
+        .timeline-progress { position: absolute; left: 0; top: 0; height: 100%; width: 45%; background: #2196f3; border-radius: 3px; }
+        .time-info { display: flex; justify-content: space-between; font-size: 11px; color: #888; }
+        .speed-control { font-size: 14px; font-weight: bold; color: #2196f3; cursor: pointer; flex-shrink: 0; }
+
+        /* 강조 효과 */
+        .active-context-bg { background-color: #fff59d !important; border: 2px solid #fbc02d !important; box-shadow: 0 0 15px rgba(255, 241, 118, 0.5); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     </style>
@@ -146,110 +103,86 @@
 <div class="tablet-frame">
     <div class="left-panel">
         <div class="current-page-badge" id="pageBadge">Page 13 / 60</div>
-        
         <div class="pdf-scroll-area" id="pdfArea" onscroll="detectPage()">
-            
             <div class="pdf-page" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">13</div>
                 <div class="pdf-title">Chapter 4. 당뇨병성 케톤산증 (DKA)</div>
-                <p class="pdf-text">
-                    <strong>1. 정의 및 개요</strong><br>
-                    인슐린 결핍으로 인한 고혈당, 대사성 산증, 케톤증을 특징으로 하는 급성 대사 합병증이다.<br><br>
-                    <strong>2. 병태 생리</strong><br>
-                    인슐린이 부족하면 세포가 포도당을 쓰지 못해 지방을 분해한다. 이때 간에서 지방산이 산화되어 '케톤체'가 과다 생성된다.
-                </p>
-                <div class="dropped-note" style="top: 300px; left: 400px;" onclick="focusChat('chat-13-2')">
-                    🔗 AI 메모: 케톤체 생성 원리<br>(클릭 시 채팅 이동)
-                </div>
+                <p class="pdf-text"><strong>1. 정의 및 개요</strong><br>인슐린 결핍으로 인한 고혈당, 대사성 산증, 케톤증을 특징으로 하는 급성 대사 합병증이다.</p>
+                <div class="dropped-note" style="top: 250px; left: 380px;" onclick="focusChat('chat-13-2')">🔗 AI 메모: 케톤체 생성 원리</div>
             </div>
-
             <div class="pdf-page" id="p14" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">14</div>
                 <div class="pdf-title">Chapter 4. DKA의 임상 증상</div>
-                <p class="pdf-text">
-                    <strong>3. 주요 증상</strong><br>
-                    초기에는 다뇨, 다음, 전신 위약감이 나타난다.<br>
-                    산증이 심해지면 호흡 보상기전으로 <strong>쿠스마울 호흡(Kussmaul Breathing)</strong>이 나타나며, 호기 시 과일 냄새가 난다.<br><br>
-                    구토, 복통이 흔하여 급성 췌장염 등으로 오인되기도 한다.
-                </p>
+                <p class="pdf-text"><strong>3. 주요 증상</strong><br>호흡 보상기전으로 <strong>쿠스마울 호흡(Kussmaul Breathing)</strong>이 나타나며, 호기 시 과일 냄새가 난다.</p>
             </div>
-
             <div class="pdf-page" id="p15" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">15</div>
                 <div class="pdf-title">Chapter 4. DKA의 치료 원칙</div>
-                <p class="pdf-text">
-                    <strong>4. 치료 (Treatment)</strong><br>
-                    응급 치료의 핵심은 수액 요법(Hydration), 인슐린 투여, 전해질 교정이다.<br><br>
-                    <span style="background:#fff59d">※ 주의: 혈청 칼륨(K+) 농도가 3.3mEq/L 미만인 경우, 인슐린 투여 전 칼륨을 먼저 교정해야 한다.</span>
-                </p>
+                <p class="pdf-text"><strong>4. 치료 (Treatment)</strong><br>응급 치료의 핵심은 수액 요법(Hydration)이다. 인슐린 투여 전 칼륨(K+) 농도 확인이 필수적이다.</p>
             </div>
-
         </div>
     </div>
 
     <div class="right-panel">
         <div class="tabs">
-            <div class="tab active" onclick="showTab('tab-chat')">AI 채팅 (History)</div>
+            <div class="tab active" onclick="showTab('tab-chat')">AI 채팅</div>
             <div class="tab" onclick="showTab('tab-jokbo')">관련 족보</div>
+            <div class="tab" onclick="showTab('tab-script')">녹음 스크립트</div>
         </div>
 
-        <div id="tab-chat" class="tab-content active">
-            <div class="chat-container">
-                
-                <div class="msg-date">Page 13 학습 중 질문 (3일 전)</div>
-                <div class="bubble user-msg">DKA가 정확히 뭐야?</div>
-                <div class="bubble ai-msg" id="chat-13-1" draggable="true" ondragstart="drag(event)">
-                    인슐린 부족으로 케톤산이 쌓여 혈액이 산성화되는 응급 질환입니다.
+        <div class="tab-content-container">
+            <div id="tab-chat" class="tab-content active">
+                <div class="chat-container">
+                    <div class="msg-date">Page 13 질문</div>
+                    <div class="bubble user-msg">DKA가 뭐야?</div>
+                    <div class="bubble ai-msg" id="chat-13-1" draggable="true" ondragstart="drag(event)">인슐린 부족으로 케톤산이 쌓여 혈액이 산성화되는 응급 질환입니다.</div>
+                    <div class="bubble ai-msg" id="chat-13-2" draggable="true" ondragstart="drag(event)">지방이 분해되면서 산성 물질인 '케톤체'가 나옵니다.</div>
+                    <div class="msg-date">Page 14 질문</div>
+                    <div class="bubble user-msg">쿠스마울 호흡?</div>
+                    <div class="bubble ai-msg" id="chat-14-1" draggable="true" ondragstart="drag(event)">산성 혈액을 중화시키려고 깊고 빠르게 쉬는 호흡입니다.</div>
+                    <div class="msg-date">Page 15 질문</div>
+                    <div class="bubble user-msg">치료 우선순위는?</div>
+                    <div class="bubble ai-msg" id="chat-15-1" draggable="true" ondragstart="drag(event)"><strong>수액(Hydration)이 1순위</strong>입니다. 칼륨 확인 전 인슐린 투여는 위험합니다.</div>
                 </div>
-                <div class="bubble user-msg">왜 산성이 되는 거야?</div>
-                <div class="bubble ai-msg" id="chat-13-2" draggable="true" ondragstart="drag(event)">
-                    포도당 대신 지방을 태우면서 부산물로 '케톤체(산성 물질)'가 나오기 때문입니다.
-                </div>
-
-                <div class="msg-date">Page 14 학습 중 질문 (2일 전)</div>
-                <div class="bubble user-msg">쿠스마울 호흡이 뭐야?</div>
-                <div class="bubble ai-msg" id="chat-14-1" draggable="true" ondragstart="drag(event)">
-                    산성 혈액을 중화시키기 위해 CO2를 내보내려고 깊고 빠르게 쉬는 호흡입니다.
-                </div>
-
-                <div class="msg-date">Page 15 학습 중 질문 (방금 전)</div>
-                <div class="bubble user-msg">치료할 때 인슐린부터 줘?</div>
-                <div class="bubble ai-msg" id="chat-15-1" draggable="true" ondragstart="drag(event)">
-                    아뇨! <strong>수액(Hydration)이 1순위</strong>입니다. 그리고 칼륨 수치를 꼭 확인해야 해요.
-                </div>
-                <div class="bubble ai-msg" id="chat-15-2" draggable="true" ondragstart="drag(event)">
-                    칼륨이 낮은데 인슐린을 주면 심정지가 올 수 있어 위험합니다.
-                </div>
-
             </div>
+
+            <div id="tab-jokbo" class="tab-content">
+                <div style="color:#666; font-size:13px; margin-bottom:15px;">관련 기출문제</div>
+                <div class="jokbo-card p13-item visible"><span class="badge">23년</span> Q. DKA의 병태생리 중 간에서의 작용은?</div>
+                <div class="jokbo-card p14-item"><span class="badge">22년</span> Q. 과일 냄새, 깊은 호흡 환자의 진단은?</div>
+                <div class="jokbo-card p15-item"><span class="badge">24년</span> Q. K+ 2.8인 DKA 환자의 우선 처치는?</div>
+            </div>
+
+            <div id="tab-script" class="tab-content">
+                 <div class="script-segment" id="script-13-1">
+                    <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">09:30</span></div>
+                    <div class="script-text">자, DKA 정의 중요합니다. 인슐린이 없어서 몸이 산성으로 변하는 거예요. 케톤체 때문이죠.</div>
+                </div>
+                <div class="script-segment" id="script-14-1">
+                    <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">09:45</span></div>
+                    <div class="script-text">증상으로는 숨을 헐떡이는 쿠스마울 호흡이 특징적입니다. 입에서 아세톤 냄새가 나요.</div>
+                </div>
+                <div class="script-segment" id="script-15-1">
+                    <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">10:05</span></div>
+                    <div class="script-text">치료에서 제일 중요한 건 인슐린이 아니라 수액입니다. 족보에 자주 나와요. 칼륨 체크 꼭 하세요.</div>
+                </div>
+                 <div style="height: 200px;"></div> </div>
         </div>
 
-        <div id="tab-jokbo" class="tab-content">
-            <div style="color:#666; font-size:13px; margin-bottom:15px;">
-                현재 보고 계신 페이지와 관련된 기출문제입니다.
+        <div class="audio-player-bar" id="audioPlayer">
+            <div class="play-btn">▶</div>
+            <div class="timeline-container">
+                <div class="timeline-bar"><div class="timeline-progress" id="audioProgress"></div></div>
+                <div class="time-info"><span id="currentTime">09:45</span><span>15:30</span></div>
             </div>
-            
-            <div class="jokbo-card p13-item visible">
-                <span class="badge">23년 기출</span>
-                <div>Q. DKA의 병태생리 중 간에서의 작용으로 옳은 것은?</div>
-            </div>
-
-            <div class="jokbo-card p14-item">
-                <span class="badge">22년 기출</span>
-                <div>Q. 응급실 내원 환자가 과일 냄새가 나고 깊은 호흡을 한다. 진단은?</div>
-            </div>
-
-            <div class="jokbo-card p15-item">
-                <span class="badge">24년 중간</span>
-                <div>Q. K+ 2.8인 DKA 환자에게 가장 먼저 시행해야 할 처치는?</div>
-            </div>
+            <div class="speed-control">1.2x</div>
         </div>
 
     </div>
 </div>
 
 <script>
-    // [핵심 기능 1] 스크롤 감지 및 컨텍스트 동기화 (Sync Engine)
+    // [기능 1: 페이지 감지 및 싱크]
     function detectPage() {
         const scrollArea = document.getElementById('pdfArea');
         const pages = ['p13', 'p14', 'p15'];
@@ -257,123 +190,94 @@
 
         pages.forEach(pageId => {
             const pageEl = document.getElementById(pageId);
-            // 페이지의 위/아래 위치 계산
-            const pageTop = pageEl.offsetTop;
-            const pageBottom = pageTop + pageEl.clientHeight;
-
-            // 현재 뷰포트 중앙에 이 페이지가 있는지 확인
-            if (viewCenter >= pageTop && viewCenter <= pageBottom) {
-                // 1. 페이지 뱃지 업데이트
+            if (viewCenter >= pageEl.offsetTop && viewCenter <= pageEl.offsetTop + pageEl.clientHeight) {
                 const pageNum = pageId.replace('p', '');
                 document.getElementById('pageBadge').innerText = `Page ${pageNum} / 60`;
-                
-                // 2. 페이지 테두리 강조 (시각적 효과)
                 document.querySelectorAll('.pdf-page').forEach(p => p.classList.remove('active-view'));
                 pageEl.classList.add('active-view');
-
-                // 3. 오른쪽 패널 동기화 실행
                 syncRightPanel(pageNum);
             }
         });
     }
 
-    // [핵심 기능 2] 오른쪽 패널 컨텐츠 동기화 로직
+    // [기능 2: 오른쪽 패널 동기화 (채팅, 족보, 스크립트)]
     function syncRightPanel(pageNum) {
-        // A. 족보 탭 필터링
-        document.querySelectorAll('.jokbo-card').forEach(card => card.classList.remove('visible')); // 다 숨김
-        document.querySelectorAll(`.p${pageNum}-item`).forEach(card => card.classList.add('visible')); // 해당 페이지만 보임
+        // 족보 필터링
+        document.querySelectorAll('.jokbo-card').forEach(card => card.classList.remove('visible'));
+        document.querySelectorAll(`.p${pageNum}-item`).forEach(card => card.classList.add('visible'));
 
-        // B. 채팅 탭 스크롤 이동 (과거 질문 위치로)
-        // 각 페이지별 대표 질문 ID 매핑
-        const chatMap = {
-            '13': 'chat-13-1',
-            '14': 'chat-14-1',
-            '15': 'chat-15-1'
+        // 싱크 맵핑 데이터
+        const syncMap = {
+            '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:30', progress: '20%' },
+            '14': { chat: 'chat-14-1', script: 'script-14-1', time: '09:45', progress: '45%' },
+            '15': { chat: 'chat-15-1', script: 'script-15-1', time: '10:05', progress: '70%' }
         };
 
-        const targetChatId = chatMap[pageNum];
-        if (targetChatId) {
-            const chatEl = document.getElementById(targetChatId);
+        const target = syncMap[pageNum];
+        if (target) {
+            // 현재 활성화된 탭에 따라 스크롤 및 하이라이트
+            const activeTabId = document.querySelector('.tab-content.active').id;
+            let targetElId = activeTabId === 'tab-chat' ? target.chat : (activeTabId === 'tab-script' ? target.script : null);
             
-            // 채팅창이 현재 활성화되어 있다면 스크롤 이동
-            const chatContainer = document.querySelector('.chat-container');
-            
-            // (옵션) 너무 자주 움직이면 어지러우니, 이미 보이는 범위면 스킵하는 로직도 가능하지만
-            // 데모 효과를 위해 무조건 해당 위치로 부드럽게 이동시킵니다.
-            chatEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // "여기가 관련 질문이야!" 하고 알려주는 깜빡임 효과
-            highlightEffect(chatEl);
+            if (targetElId) {
+                const targetEl = document.getElementById(targetElId);
+                document.querySelector('.tab-content-container').scrollTo({ top: targetEl.offsetTop - 100, behavior: 'smooth' });
+                highlightEffect(targetEl);
+            }
+
+            // 오디오 플레이어 상태 업데이트 (스크립트 싱크)
+            document.getElementById('currentTime').innerText = target.time;
+            document.getElementById('audioProgress').style.width = target.progress;
         }
     }
 
-    // 하이라이트 효과 함수
     function highlightEffect(element) {
-        // 기존 하이라이트 제거
         document.querySelectorAll('.active-context-bg').forEach(el => el.classList.remove('active-context-bg'));
-        // 새 하이라이트 추가
         element.classList.add('active-context-bg');
-        // 2초 뒤 제거 (자연스럽게)
-        setTimeout(() => {
-            element.classList.remove('active-context-bg');
-        }, 2000);
+        setTimeout(() => { element.classList.remove('active-context-bg'); }, 2000);
     }
 
-    // [기능 3] Drag & Drop (단권화)
-    function drag(ev) {
-        ev.dataTransfer.setData("chatId", ev.target.id);
-        ev.dataTransfer.setData("text", ev.target.innerText);
-    }
-    function allowDrop(ev) { ev.preventDefault(); }
-    function drop(ev) {
-        ev.preventDefault();
-        const chatId = ev.dataTransfer.getData("chatId");
-        const text = ev.dataTransfer.getData("text");
-        
-        // 좌표 계산
-        const rect = ev.currentTarget.getBoundingClientRect();
-        const x = ev.clientX - rect.left;
-        const y = ev.clientY - rect.top;
-
-        // 포스트잇 생성
-        const note = document.createElement("div");
-        note.className = "dropped-note";
-        note.innerHTML = `📌 <b>AI 메모</b><br>${text.substring(0, 20)}...`;
-        note.style.left = x + "px";
-        note.style.top = y + "px";
-        
-        // 클릭 시 역링크 이벤트
-        note.onclick = () => focusChat(chatId);
-        
-        ev.currentTarget.appendChild(note);
-    }
-
-    // [기능 4] 역링크 (포스트잇 클릭 -> 채팅 이동)
-    function focusChat(elementId) {
-        // 탭이 족보로 되어있을 수도 있으니 채팅 탭으로 강제 전환
-        showTab('tab-chat');
-        
-        const el = document.getElementById(elementId);
-        if(el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            highlightEffect(el);
-        }
-    }
-
-    // 탭 전환
+    // [기능 3: 탭 전환 및 플레이어 표시 토글]
     function showTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         
-        // 탭 버튼 스타일
-        if(tabId === 'tab-chat') document.querySelectorAll('.tab')[0].classList.add('active');
-        else document.querySelectorAll('.tab')[1].classList.add('active');
+        const tabs = ['tab-chat', 'tab-jokbo', 'tab-script'];
+        document.querySelectorAll('.tab')[tabs.indexOf(tabId)].classList.add('active');
+
+        // 스크립트 탭일 때만 오디오 플레이어 표시
+        const player = document.getElementById('audioPlayer');
+        if (tabId === 'tab-script') player.classList.add('visible');
+        else player.classList.remove('visible');
+        
+        // 탭 전환 시 현재 페이지 기준 재싱크
+        detectPage();
     }
 
-    // 초기 실행
-    detectPage(); 
-</script>
+    // [기능 4: 드래그 앤 드롭 & 역링크] (기존 유지)
+    function drag(ev) { ev.dataTransfer.setData("chatId", ev.target.id); ev.dataTransfer.setData("text", ev.target.innerText); }
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drop(ev) {
+        ev.preventDefault();
+        const chatId = ev.dataTransfer.getData("chatId"); const text = ev.dataTransfer.getData("text");
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const note = document.createElement("div");
+        note.className = "dropped-note"; note.innerHTML = `📌 <b>AI 메모</b><br>${text.substring(0, 20)}...`;
+        note.style.left = (ev.clientX - rect.left) + "px"; note.style.top = (ev.clientY - rect.top) + "px";
+        note.onclick = () => focusChat(chatId);
+        ev.currentTarget.appendChild(note);
+    }
+    function focusChat(elementId) {
+        showTab('tab-chat');
+        const el = document.getElementById(elementId);
+        if(el) {
+            document.querySelector('.tab-content-container').scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
+            highlightEffect(el);
+        }
+    }
 
+    detectPage(); // 초기 실행
+</script>
 </body>
 </html>
