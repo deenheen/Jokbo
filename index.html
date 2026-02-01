@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med-Study OS Final Demo v5.0</title>
+    <title>Med-Study OS v6.0 (High Fidelity)</title>
     <style>
         /* [기본 스타일] */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
@@ -17,11 +17,8 @@
 
         /* --- 왼쪽: PDF 뷰어 (Full Size) --- */
         .left-panel {
-            flex: 1.5; /* 비율 증가 (더 넓게) */
-            background-color: #525659;
-            display: flex; flex-direction: column;
-            border-right: 1px solid #ddd;
-            position: relative; /* 버튼 배치를 위해 */
+            flex: 1.5; background-color: #525659; display: flex; flex-direction: column;
+            border-right: 1px solid #ddd; position: relative;
         }
         
         .pdf-header {
@@ -29,50 +26,44 @@
             padding: 0 20px; justify-content: space-between; font-size: 14px; z-index: 10;
         }
 
-        /* 뷰어 영역 (스크롤 제거, 꽉 차게) */
         .pdf-viewer-container {
             flex: 1; position: relative; overflow: hidden; background: #525659;
             display: flex; justify-content: center; align-items: center;
         }
 
         .pdf-page {
-            width: 95%; height: 95%; /* 꽉 차게 */
-            background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            padding: 50px; position: absolute;
-            display: none; /* 기본 숨김 */
-            flex-direction: column;
-            overflow-y: auto; /* 내용 많으면 내부 스크롤 */
-            border-radius: 4px;
+            width: 95%; height: 95%; background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            padding: 50px; position: absolute; display: none; flex-direction: column;
+            overflow-y: auto; border-radius: 4px;
         }
         .pdf-page.active { display: flex; animation: slideIn 0.3s ease-out; }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
 
-        .page-num { position: absolute; bottom: 20px; right: 20px; color: #999; }
-        .pdf-title { font-size: 28px; font-weight: bold; margin-bottom: 25px; color: #333; border-bottom: 3px solid #333; padding-bottom: 15px; }
-        .pdf-text { font-size: 18px; line-height: 1.8; color: #333; text-align: justify; margin-bottom: 25px; }
+        /* PDF 내부 스타일 (리얼하게) */
+        .page-num { position: absolute; bottom: 20px; right: 20px; color: #999; font-size: 12px; }
+        .pdf-title { font-size: 26px; font-weight: 800; margin-bottom: 25px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 15px; }
+        .pdf-h2 { font-size: 18px; font-weight: 700; color: #0d47a1; margin-top: 20px; margin-bottom: 10px; border-left: 4px solid #2196f3; padding-left: 10px; }
+        .pdf-text { font-size: 15px; line-height: 1.7; color: #333; text-align: justify; margin-bottom: 15px; }
+        .highlight-box { background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #bbdefb; font-size: 14px; margin: 15px 0; }
+        .important { color: #d32f2f; font-weight: bold; }
 
-        /* [페이지 넘김 버튼] */
+        /* 네비게이션 버튼 */
         .nav-btn {
             position: absolute; top: 50%; transform: translateY(-50%);
             width: 50px; height: 50px; background: rgba(0,0,0,0.6); color: white;
             border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; font-size: 24px; z-index: 100; transition: 0.2s;
-            user-select: none;
+            cursor: pointer; font-size: 24px; z-index: 100; transition: 0.2s; user-select: none;
         }
         .nav-btn:hover { background: rgba(0,0,0,0.8); transform: translateY(-50%) scale(1.1); }
-        .nav-prev { left: 20px; }
-        .nav-next { right: 20px; }
+        .nav-prev { left: 20px; } .nav-next { right: 20px; }
         .nav-btn.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
 
         /* 드래그된 메모 */
         .dropped-note {
-            position: absolute; width: 220px; background-color: #fff9c4; border-left: 5px solid #fbc02d;
-            padding: 10px; font-size: 14px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
-            border-radius: 0 8px 8px 0; cursor: pointer; z-index: 50;
+            position: absolute; width: 240px; background-color: #fff9c4; border-left: 5px solid #fbc02d;
+            padding: 12px; font-size: 13px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
+            border-radius: 0 8px 8px 0; cursor: pointer; z-index: 50; line-height: 1.4;
         }
         .dropped-note:hover { transform: scale(1.05); }
 
@@ -81,49 +72,56 @@
             flex: 0.7; display: flex; flex-direction: column; background: #f8f9fa; border-left: 1px solid #ddd; position: relative;
         }
         .tabs { display: flex; border-bottom: 1px solid #ddd; background: white; flex-shrink: 0; }
-        .tab { flex: 1; padding: 15px 10px; text-align: center; cursor: pointer; font-weight: bold; color: #888; font-size: 14px; }
+        .tab { flex: 1; padding: 15px 5px; text-align: center; cursor: pointer; font-weight: bold; color: #888; font-size: 14px; }
         .tab.active { color: #2196f3; border-bottom: 3px solid #2196f3; background: #f0f7ff; }
         
-        .tab-content-container { flex: 1; overflow-y: auto; position: relative; }
+        .tab-content-container { flex: 1; overflow-y: auto; position: relative; scroll-behavior: smooth; }
         .tab-content { display: none; padding: 20px; padding-bottom: 80px; }
         .tab-content.active { display: block; }
 
         /* [채팅 스타일] */
         .chat-container { display: flex; flex-direction: column; gap: 15px; }
-        .msg-date { text-align: center; font-size: 12px; color: #aaa; margin: 20px 0; position: relative; }
-        .msg-date::before, .msg-date::after { content:""; position: absolute; top: 50%; width: 30%; height: 1px; background: #ddd; }
+        .msg-date { text-align: center; font-size: 11px; color: #aaa; margin: 15px 0; position: relative; }
+        .msg-date::before, .msg-date::after { content:""; position: absolute; top: 50%; width: 35%; height: 1px; background: #ddd; }
         .msg-date::before { left: 0; } .msg-date::after { right: 0; }
-        .bubble { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; transition: background 0.5s; }
+        
+        .bubble { max-width: 90%; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; transition: background 0.5s; }
         .user-msg { align-self: flex-end; background: #e9ecef; color: #333; border-bottom-right-radius: 2px; }
-        .ai-msg { align-self: flex-start; background: #e3f2fd; color: #0d47a1; border-bottom-left-radius: 2px; cursor: grab; }
+        .ai-msg { align-self: flex-start; background: #e3f2fd; color: #0d47a1; border-bottom-left-radius: 2px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .ai-msg strong { color: #1565c0; }
 
-        /* [족보 스타일] */
-        .jokbo-card { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; display: none; }
+        /* [족보 스타일 - Case Study] */
+        .jokbo-card { background: white; padding: 18px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; display: none; transition: 0.2s; }
+        .jokbo-card:hover { border-color: #2196f3; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .jokbo-card.visible { display: block; animation: fadeIn 0.5s; }
-        .badge { display: inline-block; padding: 3px 8px; background: #ffebee; color: #c62828; font-size: 11px; border-radius: 4px; font-weight: bold; margin-bottom: 5px;}
+        .badge { display: inline-block; padding: 3px 8px; background: #e8eaf6; color: #3949ab; font-size: 11px; border-radius: 4px; font-weight: bold; margin-bottom: 8px; margin-right: 5px; }
+        .badge.kmle { background: #ffebee; color: #c62828; }
+        .q-text { font-size: 13px; color: #333; line-height: 1.5; font-weight: 500; }
+        .options { margin-top: 10px; font-size: 12px; color: #666; padding-left: 10px; border-left: 2px solid #eee; }
 
         /* [스크립트 스타일] */
         .script-segment { background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; transition: all 0.3s; }
         .script-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #666; }
         .speaker { font-weight: bold; color: #2196f3; }
-        .timestamp { background: #eee; padding: 2px 6px; border-radius: 4px; }
-        .script-text { font-size: 14px; line-height: 1.6; color: #333; }
-        
+        .timestamp { background: #eee; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .script-text { font-size: 14px; line-height: 1.6; color: #424242; }
+        .keyword { background: #fff9c4; padding: 0 2px; }
+
         /* [오디오 플레이어 바] */
         .audio-player-bar {
             position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #ddd;
             display: flex; align-items: center; padding: 0 20px; gap: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            display: none;
+            display: none; z-index: 200;
         }
         .audio-player-bar.visible { display: flex; }
-        .play-btn { width: 40px; height: 40px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; cursor: pointer; flex-shrink: 0; }
-        .timeline-container { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-        .timeline-bar { height: 6px; background: #eee; border-radius: 3px; position: relative; }
-        .timeline-progress { position: absolute; left: 0; top: 0; height: 100%; width: 45%; background: #2196f3; border-radius: 3px; }
-        .time-info { display: flex; justify-content: space-between; font-size: 11px; color: #888; }
-        .speed-control { font-size: 14px; font-weight: bold; color: #2196f3; cursor: pointer; flex-shrink: 0; }
+        .play-btn { width: 40px; height: 40px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+        .timeline-container { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .timeline-bar { height: 6px; background: #eee; border-radius: 3px; position: relative; overflow: hidden; }
+        .timeline-progress { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #2196f3; transition: width 0.3s linear; }
+        .time-info { display: flex; justify-content: space-between; font-size: 11px; color: #888; font-family: monospace; }
+        .speed-control { font-size: 14px; font-weight: bold; color: #555; cursor: pointer; flex-shrink: 0; border: 1px solid #ddd; padding: 4px 8px; border-radius: 4px; }
 
-        .active-context-bg { background-color: #fff59d !important; border: 2px solid #fbc02d !important; box-shadow: 0 0 15px rgba(255, 241, 118, 0.5); }
+        .active-context-bg { background-color: #fffde7 !important; border: 2px solid #fbc02d !important; box-shadow: 0 4px 12px rgba(251, 192, 45, 0.3); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     </style>
@@ -133,7 +131,7 @@
 <div class="tablet-frame">
     <div class="left-panel">
         <div class="pdf-header">
-            <span>📚 [내분비내과] 당뇨병 합병증.pdf</span>
+            <span>📚 [본과2] 내분비학_Ch04_당뇨병급성합병증.pdf</span>
             <span id="headerPageNum">Page 13 / 60</span>
         </div>
         
@@ -144,23 +142,77 @@
             <div class="pdf-page active" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">13</div>
                 <div class="pdf-title">Chapter 4. 당뇨병성 케톤산증 (DKA)</div>
-                <p class="pdf-text"><strong>1. 정의 및 개요</strong><br>인슐린 결핍으로 인한 고혈당, 대사성 산증, 케톤증을 특징으로 하는 급성 대사 합병증이다.</p>
-                <p class="pdf-text"><strong>2. 병태 생리</strong><br>인슐린이 부족하면 세포가 포도당을 쓰지 못해 지방을 분해한다. 이때 간에서 지방산이 산화되어 '케톤체'가 과다 생성된다. 이로 인해 혈액의 pH가 낮아지는 대사성 산증이 유발된다.</p>
-                <div class="dropped-note" style="top: 350px; left: 50%;" onclick="focusChat('chat-13-2')">🔗 AI 메모: 케톤체 생성 원리</div>
+                
+                <div class="pdf-h2">1. Pathophysiology (병태생리)</div>
+                <p class="pdf-text">
+                    DKA는 인슐린의 절대적 결핍(Absolute Deficiency)과 길항 호르몬(Glucagon, Cortisol, Catecholamines)의 과다 분비로 인해 발생한다. 
+                    <br>주요 3대 징후: <strong>1) 고혈당(Hyperglycemia), 2) 대사성 산증(Metabolic Acidosis), 3) 케톤증(Ketosis)</strong>.
+                </p>
+                
+                <div class="highlight-box">
+                    <strong>💡 Ketogenesis Mechanism</strong><br>
+                    Insulin ↓ → Lipolysis ↑ → Free Fatty Acid (FFA) ↑ → Liver Mitochondria → Beta-oxidation → 
+                    <span style="color:#d32f2f;">Ketone bodies (Acetoacetate, β-hydroxybutyrate)</span> 생성
+                </div>
+
+                <div class="pdf-h2">2. Precipitating Factors (유발 요인)</div>
+                <ul class="pdf-text" style="padding-left: 20px;">
+                    <li><strong>Infection (m/c):</strong> Pneumonia, UTI (30-50%)</li>
+                    <li>Inadequate Insulin therapy (환자의 임의 중단)</li>
+                    <li>New onset Type 1 DM</li>
+                </ul>
+                
+                <div class="dropped-note" style="top: 400px; left: 60%;" onclick="focusChat('chat-13-2')">
+                    📌 <strong>AI 핵심 요약</strong><br>
+                    감염(Infection)이 가장 흔한 원인입니다. 코티솔 등 스트레스 호르몬이 인슐린 저항성을 높이기 때문입니다.
+                </div>
             </div>
             
             <div class="pdf-page" id="p14" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">14</div>
-                <div class="pdf-title">Chapter 4. DKA의 임상 증상</div>
-                <p class="pdf-text"><strong>3. 주요 증상</strong><br>초기에는 다뇨, 다음, 전신 위약감이 나타나며 점차 오심, 구토, 복통으로 진행된다.</p>
-                <p class="pdf-text">특히 산증이 심해지면 호흡 보상기전으로 <strong>쿠스마울 호흡(Kussmaul Breathing)</strong>이 나타나며, 호기 시 특징적인 과일 냄새(아세톤 향)가 난다.</p>
+                <div class="pdf-title">Chapter 4. DKA - Clinical Manifestation</div>
+                
+                <div class="pdf-h2">3. Signs & Symptoms (증상 및 징후)</div>
+                <p class="pdf-text">
+                    초기에는 다뇨(Polyuria), 다음(Polydipsia), 체중 감소가 나타나며, 탈수(Dehydration)가 진행되면 저혈압, 빈맥이 발생한다.
+                    <br>위장관 증상으로 <strong>오심, 구토, 복통(Abdominal pain)</strong>이 흔하여 '급성 복증(Acute Abdomen)'과 감별이 필요하다.
+                </p>
+
+                <div class="highlight-box" style="background-color: #fff3e0; border-color: #ffe0b2;">
+                    <strong>★ Kussmaul Respiration (쿠스마울 호흡)</strong><br>
+                    대사성 산증(Metabolic Acidosis)에 대한 호흡성 보상 기전으로, 깊고 빠른 호흡(Deep & Rapid breathing)이 특징적이다. 
+                    호기 시 썩은 사과 냄새(Fruity breath odor)가 난다.
+                </div>
+
+                <div class="pdf-h2">4. Lab Findings (검사 소견)</div>
+                <p class="pdf-text">
+                    - Glucose > 250 mg/dL<br>
+                    - <span class="important">High Anion Gap Metabolic Acidosis (HAGMA)</span>: Anion Gap > 12 mEq/L<br>
+                    - Serum Ketone (+) / Urine Ketone (+++)
+                </p>
             </div>
             
             <div class="pdf-page" id="p15" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">15</div>
-                <div class="pdf-title">Chapter 4. DKA의 치료 원칙</div>
-                <p class="pdf-text"><strong>4. 치료 (Treatment)</strong><br>응급 치료의 핵심은 수액 요법(Hydration), 인슐린 투여, 전해질 교정이다.</p>
-                <p class="pdf-text" style="background:#fff3cd; padding:10px;"><strong>★ 중요:</strong> 치료의 첫 단계는 적절한 수액 공급이다. 인슐린 투여 전, 반드시 저칼륨혈증(Hypokalemia) 여부를 확인해야 한다. (K+ < 3.3mEq/L)</p>
+                <div class="pdf-title">Chapter 4. DKA - Management</div>
+                
+                <div class="pdf-h2">5. Treatment Protocol (치료 원칙)</div>
+                <p class="pdf-text">
+                    성공적인 치료를 위해 다음 순서를 준수해야 한다: 
+                    <br><strong>Fluid → Potassium($K^+$) → Insulin</strong>
+                </p>
+
+                <div class="pdf-text">
+                    <strong>1) Fluid Resuscitation (수액 요법)</strong><br>
+                    - Initial: 0.9% Normal Saline 1L/hr (첫 1~2시간)<br>
+                    - 혈당 < 200mg/dL 도달 시: 5% Dextrose 포함 수액으로 변경 (저혈당 방지)
+                </div>
+
+                <div class="highlight-box" style="background-color: #ffebee; border-color: #ffcdd2;">
+                    <strong>⚠️ WARNING: Potassium ($K^+$) Correction</strong><br>
+                    인슐린은 세포 내로 $K^+$를 이동시켜 <span class="important">심한 저칼륨혈증(Hypokalemia)</span>을 유발할 수 있다.<br>
+                    반드시 $K^+$ > 3.3 mEq/L 임을 확인 후 인슐린을 시작한다.
+                </div>
             </div>
         </div>
     </div>
@@ -175,38 +227,95 @@
         <div class="tab-content-container">
             <div id="tab-chat" class="tab-content active">
                 <div class="chat-container">
-                    <div class="msg-date">Page 13 질문</div>
-                    <div class="bubble user-msg">DKA가 뭐야?</div>
-                    <div class="bubble ai-msg" id="chat-13-1" draggable="true" ondragstart="drag(event)">인슐린 부족으로 케톤산이 쌓여 혈액이 산성화되는 응급 질환입니다.</div>
-                    <div class="bubble ai-msg" id="chat-13-2" draggable="true" ondragstart="drag(event)">지방이 분해되면서 산성 물질인 '케톤체'가 나옵니다.</div>
-                    <div class="msg-date">Page 14 질문</div>
-                    <div class="bubble user-msg">쿠스마울 호흡?</div>
-                    <div class="bubble ai-msg" id="chat-14-1" draggable="true" ondragstart="drag(event)">산성 혈액을 중화시키려고 깊고 빠르게 쉬는 호흡입니다.</div>
-                    <div class="msg-date">Page 15 질문</div>
-                    <div class="bubble user-msg">치료 우선순위는?</div>
-                    <div class="bubble ai-msg" id="chat-15-1" draggable="true" ondragstart="drag(event)"><strong>수액(Hydration)이 1순위</strong>입니다. 칼륨 확인 전 인슐린 투여는 위험합니다.</div>
+                    <div class="msg-date">Page 13 학습 중 질문</div>
+                    <div class="bubble user-msg">DKA랑 HHS 차이점이 헷갈려. 표로 정리해줘.</div>
+                    <div class="bubble ai-msg" id="chat-13-1" draggable="true" ondragstart="drag(event)">
+                        <strong>[DKA vs HHS 감별 포인트]</strong><br>
+                        1. <strong>DKA (주로 1형)</strong>: 산증(pH<7.3), 케톤(+), 복통 흔함.<br>
+                        2. <strong>HHS (주로 2형)</strong>: 심한 고혈당(>600), 산증 없음, 의식 저하 뚜렷.<br>
+                        가장 큰 차이는 <strong>'케톤산증 유무'</strong>입니다.
+                    </div>
+                    <div class="bubble user-msg">유발 요인 중에 m/c가 뭐야?</div>
+                    <div class="bubble ai-msg" id="chat-13-2" draggable="true" ondragstart="drag(event)">
+                        가장 흔한 원인(most common)은 <strong>감염(Infection)</strong>입니다. 폐렴이나 요로감염이 있을 때 스트레스 호르몬이 나와 인슐린 작용을 방해합니다.
+                    </div>
+
+                    <div class="msg-date">Page 14 학습 중 질문</div>
+                    <div class="bubble user-msg">Anion Gap 계산 공식이 뭐였지?</div>
+                    <div class="bubble ai-msg" id="chat-14-1" draggable="true" ondragstart="drag(event)">
+                        <strong>Anion Gap = $Na^+ - (Cl^- + HCO_3^-)$</strong><br>
+                        정상치는 12±2 입니다. DKA에서는 케톤산(음이온)이 증가하여 <strong>High Anion Gap</strong> 산증이 나타납니다.
+                    </div>
+                    <div class="bubble user-msg">복통은 왜 생기는 거야?</div>
+                    <div class="bubble ai-msg" id="chat-14-2" draggable="true" ondragstart="drag(event)">
+                        정확한 기전은 불명확하나, <strong>대사성 산증, 탈수, 전해질 불균형</strong>으로 인한 장 운동 저하(Ileus)가 원인으로 추정됩니다. 치료하면 호전됩니다.
+                    </div>
+
+                    <div class="msg-date">Page 15 학습 중 질문</div>
+                    <div class="bubble user-msg">치료할 때 인슐린 먼저 주면 안 돼?</div>
+                    <div class="bubble ai-msg" id="chat-15-1" draggable="true" ondragstart="drag(event)">
+                        <strong>절대 안 됩니다!</strong><br>
+                        환자는 심한 탈수 상태이므로 <strong>수액(NS) 공급이 0순위</strong>입니다. 또한 인슐린이 칼륨을 세포 안으로 밀어넣어 <strong>치명적인 부정맥</strong>이 올 수 있으므로 $K^+$ 수치 확인이 필수입니다.
+                    </div>
                 </div>
             </div>
 
             <div id="tab-jokbo" class="tab-content">
-                <div style="color:#666; font-size:13px; margin-bottom:15px;">관련 기출문제</div>
-                <div class="jokbo-card p13-item visible"><span class="badge">23년</span> Q. DKA의 병태생리 중 간에서의 작용은?</div>
-                <div class="jokbo-card p14-item"><span class="badge">22년</span> Q. 과일 냄새, 깊은 호흡 환자의 진단은?</div>
-                <div class="jokbo-card p15-item"><span class="badge">24년</span> Q. K+ 2.8인 DKA 환자의 우선 처치는?</div>
+                <div style="color:#666; font-size:13px; margin-bottom:15px; font-weight:bold;">현재 페이지 관련 기출 (최근 3년)</div>
+                
+                <div class="jokbo-card p13-item visible">
+                    <span class="badge kmle">23년 KMLE</span> <span class="badge">내분비</span>
+                    <div class="q-text">Q. 제1형 당뇨병 환자가 감기 증상 후 의식 저하로 내원했다. 소변 케톤(3+)이었다. 이 환자의 병태생리에 대한 설명으로 옳은 것은?</div>
+                    <div class="options">
+                        ① 인슐린 분비 증가<br>
+                        ② 유리지방산(FFA)의 산화 감소<br>
+                        ③ <strong>Glucagon 등 길항 호르몬 증가</strong>
+                    </div>
+                </div>
+
+                <div class="jokbo-card p14-item">
+                    <span class="badge kmle">22년 임종평</span> <span class="badge">증상</span>
+                    <div class="q-text">Q. 24세 남자가 복통과 구토를 주소로 내원했다. 호흡 수는 32회/분으로 깊고 빨랐으며, 호기 시 과일 냄새가 났다. 진단은?</div>
+                    <div class="options">
+                        ① 급성 췌장염 &nbsp; ② <strong>당뇨병성 케톤산증</strong> &nbsp; ③ 위궤양 천공
+                    </div>
+                </div>
+
+                <div class="jokbo-card p15-item">
+                    <span class="badge kmle">24년 중간</span> <span class="badge important">★필수</span>
+                    <div class="q-text">Q. DKA 환자의 초기 혈액 검사 결과 $K^+$ 2.8 mEq/L 였다. 가장 우선적으로 시행해야 할 처치는?</div>
+                    <div class="options">
+                        ① Regular Insulin IV bolus<br>
+                        ② <strong>KCl 포함 수액 투여 및 인슐린 보류</strong><br>
+                        ③ Bicarbonate 투여
+                    </div>
+                </div>
             </div>
 
             <div id="tab-script" class="tab-content">
                 <div class="script-segment" id="script-13-1">
-                    <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">09:30</span></div>
-                    <div class="script-text">자, DKA 정의 중요합니다. 인슐린이 없어서 몸이 산성으로 변하는 거예요. 케톤체 때문이죠.</div>
+                    <div class="script-header"><span class="speaker">김OO 교수님</span><span class="timestamp">09:32</span></div>
+                    <div class="script-text">
+                        자, <span class="keyword">DKA는 응급입니다.</span> 정의부터 확실히 합시다. 인슐린이 '절대적'으로 부족한 거예요. 
+                        그러면 우리 몸은 굶고 있다고 착각해서 지방을 태웁니다. 이때 부산물로 <strong>'케톤체'</strong>가 나와서 피가 산성이 되는 거죠.
+                    </div>
                 </div>
+
                 <div class="script-segment" id="script-14-1">
-                    <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">09:45</span></div>
-                    <div class="script-text">증상으로는 숨을 헐떡이는 쿠스마울 호흡이 특징적입니다. 입에서 아세톤 냄새가 나요.</div>
+                    <div class="script-header"><span class="speaker">김OO 교수님</span><span class="timestamp">09:48</span></div>
+                    <div class="script-text">
+                        환자가 응급실에 들어오는데 <strong>숨을 헐떡거린다(Kussmaul)</strong>, 그리고 입에서 술 냄새 같은 <strong>과일 향</strong>이 난다? 
+                        그럼 바로 혈당부터 찔러봐야 합니다. 그리고 배 아프다고 맹장염으로 오진하면 안 돼요. DKA도 복통 심합니다.
+                    </div>
                 </div>
+
                 <div class="script-segment" id="script-15-1">
-                    <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">10:05</span></div>
-                    <div class="script-text">치료에서 제일 중요한 건 인슐린이 아니라 수액입니다. 족보에 자주 나와요. 칼륨 체크 꼭 하세요.</div>
+                    <div class="script-header"><span class="speaker">김OO 교수님</span><span class="timestamp">10:15</span></div>
+                    <div class="script-text">
+                        <span class="keyword">이거 국시 단골 문제입니다. 별표 치세요.</span> 치료 순서! 인슐린부터 주면 환자 죽습니다. 
+                        탈수 교정이 먼저니까 <strong>수액(Normal Saline)</strong> 콸콸 부어주고, 
+                        꼭 <strong>칼륨(K) 수치 확인</strong>하고 인슐린 주세요. 안 그러면 부정맥 옵니다.
+                    </div>
                 </div>
                  <div style="height: 200px;"></div>
             </div>
@@ -216,77 +325,80 @@
             <div class="play-btn">▶</div>
             <div class="timeline-container">
                 <div class="timeline-bar"><div class="timeline-progress" id="audioProgress"></div></div>
-                <div class="time-info"><span id="currentTime">09:45</span><span>15:30</span></div>
+                <div class="time-info"><span id="currentTime">00:00</span><span>50:00</span></div>
             </div>
-            <div class="speed-control">1.2x</div>
+            <div class="speed-control">1.5x</div>
         </div>
     </div>
 </div>
 
 <script>
-    // 페이지 데이터 및 상태 관리
+    // [전역 변수]
     const pages = ['p13', 'p14', 'p15'];
     let currentPageIdx = 0;
 
-    // [기능 1: 페이지 변경 (버튼)]
+    // [기능 1: 페이지 변경]
     function changePage(direction) {
         const nextIdx = currentPageIdx + direction;
-        
-        // 범위 체크
         if (nextIdx < 0 || nextIdx >= pages.length) return;
 
         // 현재 페이지 숨김
         document.getElementById(pages[currentPageIdx]).classList.remove('active');
         
-        // 새 페이지 인덱스 업데이트
+        // 새 페이지 업데이트
         currentPageIdx = nextIdx;
         const newPageId = pages[currentPageIdx];
-        
-        // 새 페이지 표시
         document.getElementById(newPageId).classList.add('active');
         
-        // 헤더 및 버튼 상태 업데이트
+        // UI 업데이트
         const pageNum = newPageId.replace('p', '');
         document.getElementById('headerPageNum').innerText = `Page ${pageNum} / 60`;
         
         document.querySelector('.nav-prev').classList.toggle('disabled', currentPageIdx === 0);
         document.querySelector('.nav-next').classList.toggle('disabled', currentPageIdx === pages.length - 1);
 
-        // 오른쪽 패널 싱크 실행
+        // 싱크 실행
         syncRightPanel(pageNum);
     }
 
-    // [기능 2: 오른쪽 패널 동기화]
+    // [기능 2: 컨텐츠 동기화]
     function syncRightPanel(pageNum) {
         // 족보 필터링
         document.querySelectorAll('.jokbo-card').forEach(card => card.classList.remove('visible'));
         document.querySelectorAll(`.p${pageNum}-item`).forEach(card => card.classList.add('visible'));
 
-        // 싱크 데이터
+        // 싱크 데이터 맵핑
         const syncMap = {
-            '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:30', progress: '20%' },
-            '14': { chat: 'chat-14-1', script: 'script-14-1', time: '09:45', progress: '45%' },
-            '15': { chat: 'chat-15-1', script: 'script-15-1', time: '10:05', progress: '70%' }
+            '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:32', progress: '18%' },
+            '14': { chat: 'chat-14-1', script: 'script-14-1', time: '09:48', progress: '35%' },
+            '15': { chat: 'chat-15-1', script: 'script-15-1', time: '10:15', progress: '60%' }
         };
 
         const target = syncMap[pageNum];
         if (target) {
             const activeTabId = document.querySelector('.tab-content.active').id;
-            let targetElId = activeTabId === 'tab-chat' ? target.chat : (activeTabId === 'tab-script' ? target.script : null);
+            
+            // 해당 탭의 타겟 요소 ID 찾기
+            let targetElId = null;
+            if (activeTabId === 'tab-chat') targetElId = target.chat;
+            else if (activeTabId === 'tab-script') targetElId = target.script;
             
             if (targetElId) {
                 const targetEl = document.getElementById(targetElId);
                 if (targetEl) {
-                    document.querySelector('.tab-content-container').scrollTo({ top: targetEl.offsetTop - 100, behavior: 'smooth' });
+                    // 부드러운 스크롤 이동
+                    const container = document.querySelector('.tab-content-container');
+                    container.scrollTo({ top: targetEl.offsetTop - 80, behavior: 'smooth' });
                     highlightEffect(targetEl);
                 }
             }
-            // 플레이어 업데이트
+            // 플레이어 UI 업데이트
             document.getElementById('currentTime').innerText = target.time;
             document.getElementById('audioProgress').style.width = target.progress;
         }
     }
 
+    // 하이라이트 효과
     function highlightEffect(element) {
         document.querySelectorAll('.active-context-bg').forEach(el => el.classList.remove('active-context-bg'));
         element.classList.add('active-context-bg');
@@ -295,40 +407,53 @@
 
     // [기능 3: 탭 전환]
     function showTab(tabId) {
+        // 탭 컨텐츠 전환
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         
+        // 탭 버튼 스타일 전환
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         const tabs = ['tab-chat', 'tab-jokbo', 'tab-script'];
         document.querySelectorAll('.tab')[tabs.indexOf(tabId)].classList.add('active');
 
+        // 플레이어 표시 여부
         const player = document.getElementById('audioPlayer');
         if (tabId === 'tab-script') player.classList.add('visible');
         else player.classList.remove('visible');
         
-        // 현재 페이지 기준으로 다시 싱크 맞춤
+        // 현재 페이지 기준으로 재싱크
         const currentPageNum = pages[currentPageIdx].replace('p', '');
         syncRightPanel(currentPageNum);
     }
 
-    // [기능 4: 드래그 앤 드롭 & 역링크]
+    // [기능 4: Drag & Drop]
     function drag(ev) { ev.dataTransfer.setData("chatId", ev.target.id); ev.dataTransfer.setData("text", ev.target.innerText); }
     function allowDrop(ev) { ev.preventDefault(); }
     function drop(ev) {
         ev.preventDefault();
-        const chatId = ev.dataTransfer.getData("chatId"); const text = ev.dataTransfer.getData("text");
+        const chatId = ev.dataTransfer.getData("chatId"); 
+        // HTML 태그 제거하고 텍스트만 추출
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = ev.dataTransfer.getData("text");
+        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+        
         const rect = ev.currentTarget.getBoundingClientRect();
+        
         const note = document.createElement("div");
-        note.className = "dropped-note"; note.innerHTML = `📌 <b>AI 메모</b><br>${text.substring(0, 20)}...`;
-        note.style.left = (ev.clientX - rect.left) + "px"; note.style.top = (ev.clientY - rect.top) + "px";
+        note.className = "dropped-note"; 
+        note.innerHTML = `📌 <strong>AI 메모</strong><br>${cleanText.substring(0, 35)}...`;
+        note.style.left = (ev.clientX - rect.left) + "px"; 
+        note.style.top = (ev.clientY - rect.top) + "px";
         note.onclick = () => focusChat(chatId);
+        
         ev.currentTarget.appendChild(note);
     }
+
     function focusChat(elementId) {
         showTab('tab-chat');
         const el = document.getElementById(elementId);
         if(el) {
-            document.querySelector('.tab-content-container').scrollTo({ top: el.offsetTop - 100, behavior: 'smooth' });
+            document.querySelector('.tab-content-container').scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
             highlightEffect(el);
         }
     }
