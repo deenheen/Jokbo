@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med-Study OS Final Demo v4.0</title>
+    <title>Med-Study OS Final Demo v5.0</title>
     <style>
         /* [기본 스타일] */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
@@ -15,32 +15,64 @@
             box-shadow: 0 30px 80px rgba(0,0,0,0.2); border: 10px solid #222; display: flex; overflow: hidden;
         }
 
-        /* --- 왼쪽: PDF 뷰어 --- */
+        /* --- 왼쪽: PDF 뷰어 (Full Size) --- */
         .left-panel {
-            flex: 1.3; background-color: #525659; display: flex; flex-direction: column;
-            border-right: 1px solid #ddd; position: relative;
+            flex: 1.5; /* 비율 증가 (더 넓게) */
+            background-color: #525659;
+            display: flex; flex-direction: column;
+            border-right: 1px solid #ddd;
+            position: relative; /* 버튼 배치를 위해 */
         }
-        .current-page-badge {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; z-index: 100; backdrop-filter: blur(4px);
+        
+        .pdf-header {
+            height: 50px; background: #323639; color: #f1f1f1; display: flex; align-items: center;
+            padding: 0 20px; justify-content: space-between; font-size: 14px; z-index: 10;
         }
-        .pdf-scroll-area {
-            flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 40px; scroll-behavior: smooth;
+
+        /* 뷰어 영역 (스크롤 제거, 꽉 차게) */
+        .pdf-viewer-container {
+            flex: 1; position: relative; overflow: hidden; background: #525659;
+            display: flex; justify-content: center; align-items: center;
         }
+
         .pdf-page {
-            width: 100%; max-width: 700px; height: 900px; background: white;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; padding: 50px; transition: transform 0.3s;
+            width: 95%; height: 95%; /* 꽉 차게 */
+            background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            padding: 50px; position: absolute;
+            display: none; /* 기본 숨김 */
+            flex-direction: column;
+            overflow-y: auto; /* 내용 많으면 내부 스크롤 */
+            border-radius: 4px;
         }
-        .pdf-page.active-view { border: 4px solid #2196f3; transform: scale(1.02); }
+        .pdf-page.active { display: flex; animation: slideIn 0.3s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
         .page-num { position: absolute; bottom: 20px; right: 20px; color: #999; }
-        .pdf-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .pdf-text { font-size: 16px; line-height: 1.8; color: #444; text-align: justify; margin-bottom: 20px; }
+        .pdf-title { font-size: 28px; font-weight: bold; margin-bottom: 25px; color: #333; border-bottom: 3px solid #333; padding-bottom: 15px; }
+        .pdf-text { font-size: 18px; line-height: 1.8; color: #333; text-align: justify; margin-bottom: 25px; }
+
+        /* [페이지 넘김 버튼] */
+        .nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 50px; height: 50px; background: rgba(0,0,0,0.6); color: white;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 24px; z-index: 100; transition: 0.2s;
+            user-select: none;
+        }
+        .nav-btn:hover { background: rgba(0,0,0,0.8); transform: translateY(-50%) scale(1.1); }
+        .nav-prev { left: 20px; }
+        .nav-next { right: 20px; }
+        .nav-btn.disabled { opacity: 0.2; cursor: default; pointer-events: none; }
 
         /* 드래그된 메모 */
         .dropped-note {
             position: absolute; width: 220px; background-color: #fff9c4; border-left: 5px solid #fbc02d;
-            padding: 10px; font-size: 12px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
-            border-radius: 0 8px 8px 0; cursor: pointer; z-index: 100;
+            padding: 10px; font-size: 14px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
+            border-radius: 0 8px 8px 0; cursor: pointer; z-index: 50;
         }
         .dropped-note:hover { transform: scale(1.05); }
 
@@ -52,9 +84,8 @@
         .tab { flex: 1; padding: 15px 10px; text-align: center; cursor: pointer; font-weight: bold; color: #888; font-size: 14px; }
         .tab.active { color: #2196f3; border-bottom: 3px solid #2196f3; background: #f0f7ff; }
         
-        /* 탭 컨텐츠 영역 (스크롤 가능) */
         .tab-content-container { flex: 1; overflow-y: auto; position: relative; }
-        .tab-content { display: none; padding: 20px; padding-bottom: 80px; /* 플레이어 공간 확보 */ }
+        .tab-content { display: none; padding: 20px; padding-bottom: 80px; }
         .tab-content.active { display: block; }
 
         /* [채팅 스타일] */
@@ -71,18 +102,18 @@
         .jokbo-card.visible { display: block; animation: fadeIn 0.5s; }
         .badge { display: inline-block; padding: 3px 8px; background: #ffebee; color: #c62828; font-size: 11px; border-radius: 4px; font-weight: bold; margin-bottom: 5px;}
 
-        /* [스크립트 스타일] (신규 추가) */
+        /* [스크립트 스타일] */
         .script-segment { background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; transition: all 0.3s; }
         .script-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #666; }
         .speaker { font-weight: bold; color: #2196f3; }
         .timestamp { background: #eee; padding: 2px 6px; border-radius: 4px; }
         .script-text { font-size: 14px; line-height: 1.6; color: #333; }
         
-        /* [오디오 플레이어 바] (신규 추가 - 스케치 반영) */
+        /* [오디오 플레이어 바] */
         .audio-player-bar {
             position: absolute; bottom: 0; left: 0; right: 0; height: 70px; background: white; border-top: 1px solid #ddd;
             display: flex; align-items: center; padding: 0 20px; gap: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            display: none; /* 기본 숨김, 스크립트 탭에서만 표시 */
+            display: none;
         }
         .audio-player-bar.visible { display: flex; }
         .play-btn { width: 40px; height: 40px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; cursor: pointer; flex-shrink: 0; }
@@ -92,7 +123,6 @@
         .time-info { display: flex; justify-content: space-between; font-size: 11px; color: #888; }
         .speed-control { font-size: 14px; font-weight: bold; color: #2196f3; cursor: pointer; flex-shrink: 0; }
 
-        /* 강조 효과 */
         .active-context-bg { background-color: #fff59d !important; border: 2px solid #fbc02d !important; box-shadow: 0 0 15px rgba(255, 241, 118, 0.5); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -102,23 +132,35 @@
 
 <div class="tablet-frame">
     <div class="left-panel">
-        <div class="current-page-badge" id="pageBadge">Page 13 / 60</div>
-        <div class="pdf-scroll-area" id="pdfArea" onscroll="detectPage()">
-            <div class="pdf-page" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <div class="pdf-header">
+            <span>📚 [내분비내과] 당뇨병 합병증.pdf</span>
+            <span id="headerPageNum">Page 13 / 60</span>
+        </div>
+        
+        <div class="pdf-viewer-container">
+            <div class="nav-btn nav-prev disabled" onclick="changePage(-1)">❮</div>
+            <div class="nav-btn nav-next" onclick="changePage(1)">❯</div>
+
+            <div class="pdf-page active" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">13</div>
                 <div class="pdf-title">Chapter 4. 당뇨병성 케톤산증 (DKA)</div>
                 <p class="pdf-text"><strong>1. 정의 및 개요</strong><br>인슐린 결핍으로 인한 고혈당, 대사성 산증, 케톤증을 특징으로 하는 급성 대사 합병증이다.</p>
-                <div class="dropped-note" style="top: 250px; left: 380px;" onclick="focusChat('chat-13-2')">🔗 AI 메모: 케톤체 생성 원리</div>
+                <p class="pdf-text"><strong>2. 병태 생리</strong><br>인슐린이 부족하면 세포가 포도당을 쓰지 못해 지방을 분해한다. 이때 간에서 지방산이 산화되어 '케톤체'가 과다 생성된다. 이로 인해 혈액의 pH가 낮아지는 대사성 산증이 유발된다.</p>
+                <div class="dropped-note" style="top: 350px; left: 50%;" onclick="focusChat('chat-13-2')">🔗 AI 메모: 케톤체 생성 원리</div>
             </div>
+            
             <div class="pdf-page" id="p14" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">14</div>
                 <div class="pdf-title">Chapter 4. DKA의 임상 증상</div>
-                <p class="pdf-text"><strong>3. 주요 증상</strong><br>호흡 보상기전으로 <strong>쿠스마울 호흡(Kussmaul Breathing)</strong>이 나타나며, 호기 시 과일 냄새가 난다.</p>
+                <p class="pdf-text"><strong>3. 주요 증상</strong><br>초기에는 다뇨, 다음, 전신 위약감이 나타나며 점차 오심, 구토, 복통으로 진행된다.</p>
+                <p class="pdf-text">특히 산증이 심해지면 호흡 보상기전으로 <strong>쿠스마울 호흡(Kussmaul Breathing)</strong>이 나타나며, 호기 시 특징적인 과일 냄새(아세톤 향)가 난다.</p>
             </div>
+            
             <div class="pdf-page" id="p15" ondrop="drop(event)" ondragover="allowDrop(event)">
                 <div class="page-num">15</div>
                 <div class="pdf-title">Chapter 4. DKA의 치료 원칙</div>
-                <p class="pdf-text"><strong>4. 치료 (Treatment)</strong><br>응급 치료의 핵심은 수액 요법(Hydration)이다. 인슐린 투여 전 칼륨(K+) 농도 확인이 필수적이다.</p>
+                <p class="pdf-text"><strong>4. 치료 (Treatment)</strong><br>응급 치료의 핵심은 수액 요법(Hydration), 인슐린 투여, 전해질 교정이다.</p>
+                <p class="pdf-text" style="background:#fff3cd; padding:10px;"><strong>★ 중요:</strong> 치료의 첫 단계는 적절한 수액 공급이다. 인슐린 투여 전, 반드시 저칼륨혈증(Hypokalemia) 여부를 확인해야 한다. (K+ < 3.3mEq/L)</p>
             </div>
         </div>
     </div>
@@ -154,7 +196,7 @@
             </div>
 
             <div id="tab-script" class="tab-content">
-                 <div class="script-segment" id="script-13-1">
+                <div class="script-segment" id="script-13-1">
                     <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">09:30</span></div>
                     <div class="script-text">자, DKA 정의 중요합니다. 인슐린이 없어서 몸이 산성으로 변하는 거예요. 케톤체 때문이죠.</div>
                 </div>
@@ -166,7 +208,8 @@
                     <div class="script-header"><span class="speaker">화자 1 (교수님)</span><span class="timestamp">10:05</span></div>
                     <div class="script-text">치료에서 제일 중요한 건 인슐린이 아니라 수액입니다. 족보에 자주 나와요. 칼륨 체크 꼭 하세요.</div>
                 </div>
-                 <div style="height: 200px;"></div> </div>
+                 <div style="height: 200px;"></div>
+            </div>
         </div>
 
         <div class="audio-player-bar" id="audioPlayer">
@@ -177,36 +220,49 @@
             </div>
             <div class="speed-control">1.2x</div>
         </div>
-
     </div>
 </div>
 
 <script>
-    // [기능 1: 페이지 감지 및 싱크]
-    function detectPage() {
-        const scrollArea = document.getElementById('pdfArea');
-        const pages = ['p13', 'p14', 'p15'];
-        const viewCenter = scrollArea.scrollTop + (scrollArea.clientHeight / 2);
+    // 페이지 데이터 및 상태 관리
+    const pages = ['p13', 'p14', 'p15'];
+    let currentPageIdx = 0;
 
-        pages.forEach(pageId => {
-            const pageEl = document.getElementById(pageId);
-            if (viewCenter >= pageEl.offsetTop && viewCenter <= pageEl.offsetTop + pageEl.clientHeight) {
-                const pageNum = pageId.replace('p', '');
-                document.getElementById('pageBadge').innerText = `Page ${pageNum} / 60`;
-                document.querySelectorAll('.pdf-page').forEach(p => p.classList.remove('active-view'));
-                pageEl.classList.add('active-view');
-                syncRightPanel(pageNum);
-            }
-        });
+    // [기능 1: 페이지 변경 (버튼)]
+    function changePage(direction) {
+        const nextIdx = currentPageIdx + direction;
+        
+        // 범위 체크
+        if (nextIdx < 0 || nextIdx >= pages.length) return;
+
+        // 현재 페이지 숨김
+        document.getElementById(pages[currentPageIdx]).classList.remove('active');
+        
+        // 새 페이지 인덱스 업데이트
+        currentPageIdx = nextIdx;
+        const newPageId = pages[currentPageIdx];
+        
+        // 새 페이지 표시
+        document.getElementById(newPageId).classList.add('active');
+        
+        // 헤더 및 버튼 상태 업데이트
+        const pageNum = newPageId.replace('p', '');
+        document.getElementById('headerPageNum').innerText = `Page ${pageNum} / 60`;
+        
+        document.querySelector('.nav-prev').classList.toggle('disabled', currentPageIdx === 0);
+        document.querySelector('.nav-next').classList.toggle('disabled', currentPageIdx === pages.length - 1);
+
+        // 오른쪽 패널 싱크 실행
+        syncRightPanel(pageNum);
     }
 
-    // [기능 2: 오른쪽 패널 동기화 (채팅, 족보, 스크립트)]
+    // [기능 2: 오른쪽 패널 동기화]
     function syncRightPanel(pageNum) {
         // 족보 필터링
         document.querySelectorAll('.jokbo-card').forEach(card => card.classList.remove('visible'));
         document.querySelectorAll(`.p${pageNum}-item`).forEach(card => card.classList.add('visible'));
 
-        // 싱크 맵핑 데이터
+        // 싱크 데이터
         const syncMap = {
             '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:30', progress: '20%' },
             '14': { chat: 'chat-14-1', script: 'script-14-1', time: '09:45', progress: '45%' },
@@ -215,17 +271,17 @@
 
         const target = syncMap[pageNum];
         if (target) {
-            // 현재 활성화된 탭에 따라 스크롤 및 하이라이트
             const activeTabId = document.querySelector('.tab-content.active').id;
             let targetElId = activeTabId === 'tab-chat' ? target.chat : (activeTabId === 'tab-script' ? target.script : null);
             
             if (targetElId) {
                 const targetEl = document.getElementById(targetElId);
-                document.querySelector('.tab-content-container').scrollTo({ top: targetEl.offsetTop - 100, behavior: 'smooth' });
-                highlightEffect(targetEl);
+                if (targetEl) {
+                    document.querySelector('.tab-content-container').scrollTo({ top: targetEl.offsetTop - 100, behavior: 'smooth' });
+                    highlightEffect(targetEl);
+                }
             }
-
-            // 오디오 플레이어 상태 업데이트 (스크립트 싱크)
+            // 플레이어 업데이트
             document.getElementById('currentTime').innerText = target.time;
             document.getElementById('audioProgress').style.width = target.progress;
         }
@@ -237,7 +293,7 @@
         setTimeout(() => { element.classList.remove('active-context-bg'); }, 2000);
     }
 
-    // [기능 3: 탭 전환 및 플레이어 표시 토글]
+    // [기능 3: 탭 전환]
     function showTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
@@ -246,16 +302,16 @@
         const tabs = ['tab-chat', 'tab-jokbo', 'tab-script'];
         document.querySelectorAll('.tab')[tabs.indexOf(tabId)].classList.add('active');
 
-        // 스크립트 탭일 때만 오디오 플레이어 표시
         const player = document.getElementById('audioPlayer');
         if (tabId === 'tab-script') player.classList.add('visible');
         else player.classList.remove('visible');
         
-        // 탭 전환 시 현재 페이지 기준 재싱크
-        detectPage();
+        // 현재 페이지 기준으로 다시 싱크 맞춤
+        const currentPageNum = pages[currentPageIdx].replace('p', '');
+        syncRightPanel(currentPageNum);
     }
 
-    // [기능 4: 드래그 앤 드롭 & 역링크] (기존 유지)
+    // [기능 4: 드래그 앤 드롭 & 역링크]
     function drag(ev) { ev.dataTransfer.setData("chatId", ev.target.id); ev.dataTransfer.setData("text", ev.target.innerText); }
     function allowDrop(ev) { ev.preventDefault(); }
     function drop(ev) {
@@ -276,8 +332,6 @@
             highlightEffect(el);
         }
     }
-
-    detectPage(); // 초기 실행
 </script>
 </body>
 </html>
