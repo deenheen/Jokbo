@@ -3,208 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Med-Study OS v8.1 (Drawing Feature Added)</title>
+    <title>Med-Study OS v10.4 (Navigation Fix & Rich AI)</title>
     <style>
         /* [기본 스타일 & 폰트] */
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap');
+        
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
-        body { background-color: #f0f2f5; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; user-select: none; }
+        body { background-color: #eaeff5; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; user-select: none; }
 
-        /* [메인 프레임] */
-        .tablet-frame {
-            width: 1600px; height: 950px; background: white; border-radius: 12px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15); border: 1px solid #ddd; display: flex; overflow: hidden;
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* --- [1. 홈 화면 (Dashboard)] --- */
+        #home-screen {
+            width: 100%; height: 100%; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            z-index: 2000; position: absolute; top: 0; left: 0;
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        #home-screen.hidden { opacity: 0; transform: scale(1.1); pointer-events: none; }
+
+        .home-card {
+            background: rgba(255, 255, 255, 0.95); padding: 60px 80px; border-radius: 32px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.12); backdrop-filter: blur(10px);
+            text-align: center; width: 1000px; max-width: 90%; border: 1px solid rgba(255,255,255,0.5);
         }
 
-        /* --- [왼쪽: PDF 뷰어 & 필기 영역] --- */
+        .home-title { font-size: 36px; font-weight: 800; color: #1e293b; margin-bottom: 12px; letter-spacing: -0.5px; }
+        .home-subtitle { font-size: 16px; color: #64748b; margin-bottom: 60px; font-weight: 500; }
+
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 60px; }
+
+        .upload-item {
+            border: 2px dashed #cbd5e1; border-radius: 20px; padding: 40px 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+            background: #fff;
+        }
+        .upload-item:hover { border-color: #3b82f6; background: #eff6ff; transform: translateY(-8px); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1); }
+        .upload-item.completed { border-style: solid; border-color: #22c55e; background: #f0fdf4; }
+
+        .upload-icon { font-size: 48px; margin-bottom: 20px; filter: grayscale(100%); transition: 0.3s; }
+        .upload-item:hover .upload-icon { filter: grayscale(0%); transform: scale(1.1); }
+        .upload-label { font-size: 16px; font-weight: 700; color: #334155; margin-bottom: 8px; }
+        .upload-desc { font-size: 13px; color: #94a3b8; }
+        
+        .check-mark {
+            position: absolute; top: 12px; right: 12px; 
+            width: 28px; height: 28px; background: #22c55e; color: white; 
+            border-radius: 50%; font-size: 16px; display: none; 
+            align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
+        }
+        .upload-item.completed .check-mark { display: flex; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+        .start-btn {
+            background: #3b82f6; color: white; padding: 18px 70px; 
+            border-radius: 60px; font-size: 18px; font-weight: 700; border: none;
+            cursor: pointer; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s; opacity: 0.5; pointer-events: none; transform: translateY(0);
+        }
+        .start-btn.active { opacity: 1; pointer-events: auto; }
+        .start-btn:hover { background: #2563eb; transform: translateY(-3px); box-shadow: 0 15px 35px rgba(37, 99, 235, 0.5); }
+
+
+        /* --- [2. 메인 앱] --- */
+        #main-app {
+            opacity: 0; transition: opacity 0.8s ease-in; display: none;
+            width: 100%; height: 100vh; justify-content: center; align-items: center;
+        }
+        #main-app.visible { opacity: 1; display: flex; }
+
+        .tablet-frame {
+            width: 1600px; height: 950px; background: white; border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid #1e293b; display: flex; overflow: hidden;
+        }
+
+        /* --- [왼쪽: PDF 뷰어] --- */
         .left-panel {
-            flex: 1.6; background-color: #3e3e3e; display: flex; flex-direction: column;
-            border-right: 1px solid #333; position: relative;
+            flex: 1.6; background-color: #f1f5f9; display: flex; flex-direction: column;
+            border-right: 1px solid #e2e8f0; position: relative;
         }
         
         .pdf-header {
-            height: 48px; background: #2b2b2b; color: #e0e0e0; display: flex; align-items: center;
-            padding: 0 20px; justify-content: space-between; font-size: 13px; font-weight: 500; border-bottom: 1px solid #1a1a1a; z-index: 10;
+            height: 56px; background: #fff; color: #334155; display: flex; align-items: center;
+            padding: 0 24px; justify-content: space-between; font-size: 14px; font-weight: 600; 
+            border-bottom: 1px solid #e2e8f0; z-index: 10;
         }
 
-        /* 필기 모드 토글 버튼 */
         .edit-mode-btn {
-            padding: 6px 10px; background: #444; border-radius: 6px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px; background: #f1f5f9; border-radius: 8px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; border: 1px solid transparent;
         }
-        .edit-mode-btn:hover { background: #555; }
-        .edit-mode-btn.active { background: #2196f3; color: white; }
+        .edit-mode-btn:hover { background: #e2e8f0; }
+        .edit-mode-btn.active { background: #eff6ff; color: #3b82f6; border-color: #bfdbfe; }
 
-        /* 필기 툴바 */
         .drawing-toolbar {
-            position: absolute; top: 58px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 8px 12px; border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: none; gap: 8px; z-index: 100;
+            position: absolute; top: 66px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px);
+            padding: 8px 16px; border-radius: 100px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0,0,0,0.05); 
+            display: none; gap: 12px; z-index: 100;
         }
-        .drawing-toolbar.visible { display: flex; animation: slideDown 0.2s ease-out; }
+        .drawing-toolbar.visible { display: flex; animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideDown { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
         .tool-btn {
-            width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent;
-            display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; transition: 0.2s; color: #555; background: #f5f5f5;
+            width: 40px; height: 40px; border-radius: 50%; border: 2px solid transparent;
+            display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; transition: 0.2s; color: #64748b; background: transparent;
         }
-        .tool-btn:hover { background: #eee; }
-        .tool-btn.active { border-color: #2196f3; color: #2196f3; background: #e3f2fd; }
-        .tool-btn.undo-btn:active { transform: scale(0.9); background: #ddd; }
+        .tool-btn:hover { background: #f1f5f9; color: #334155; }
+        .tool-btn.active { background: #eff6ff; color: #3b82f6; border-color: #dbeafe; }
+        .tool-btn.undo-btn:active { transform: scale(0.9); background: #e2e8f0; }
 
         .pdf-viewer-container {
-            flex: 1; position: relative; overflow: hidden; background: #525659;
-            display: flex; justify-content: center; align-items: center; padding: 20px;
+            flex: 1; position: relative; overflow: hidden; background: #cbd5e1;
+            display: flex; justify-content: center; align-items: center; padding: 30px;
         }
 
-        /* 실제 PPT 슬라이드 및 캔버스 래퍼 */
         .page-wrapper {
-            width: 100%; height: 100%; max-width: 800px; max-height: 1130px;
-            position: absolute; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            width: 100%; height: 100%; max-width: 840px; max-height: 1188px;
+            position: absolute; display: none; box-shadow: 0 20px 40px -5px rgba(0,0,0,0.2);
+            border-radius: 4px;
         }
-        .page-wrapper.active { display: block; animation: fadeIn 0.2s ease-out; }
+        .page-wrapper.active { display: block; animation: fadeIn 0.3s ease-out; }
 
         .pdf-page {
-            width: 100%; height: 100%; background: white; padding: 40px 50px;
+            width: 100%; height: 100%; background: white; padding: 50px 60px;
             position: absolute; top: 0; left: 0; display: flex; flex-direction: column; overflow-y: auto; z-index: 1;
+            border-radius: 4px;
         }
-        /* 필기용 캔버스 - PDF 위에 겹침 */
         .drawing-canvas {
-            position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; /* 기본은 클릭 통과 */
-            touch-action: none; /* 터치 스크롤 방지 */
+            position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; 
+            touch-action: none; width: 100%; height: 100%;
         }
-        /* 편집 모드일 때만 캔버스가 이벤트를 받음 */
         .left-panel.drawing-mode .drawing-canvas { pointer-events: auto; cursor: crosshair; }
-        /* 편집 모드일 때 드래그 앤 드롭 방지용 커버 */
         .left-panel.drawing-mode .pdf-page { pointer-events: none; }
-
 
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* PDF 내부 디자인 (기존 동일) */
-        .slide-header { border-bottom: 2px solid #003c8f; padding-bottom: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .slide-title { font-size: 24px; font-weight: 800; color: #003c8f; }
-        .slide-sub { font-size: 14px; color: #666; font-weight: 600; }
-        
-        .content-block { margin-bottom: 25px; }
-        .section-title { font-size: 16px; font-weight: 700; color: #333; margin-bottom: 8px; display: flex; align-items: center; }
-        .section-title::before { content: ""; display: inline-block; width: 4px; height: 16px; background: #1565c0; margin-right: 8px; }
-        
-        .text-body { font-size: 14px; line-height: 1.7; color: #444; text-align: justify; letter-spacing: -0.3px; }
-        .text-body strong { color: #000; font-weight: 700; }
-        .text-body ul { padding-left: 20px; margin-top: 5px; }
-        .text-body li { margin-bottom: 4px; }
+        /* PDF 스타일 */
+        .slide-header { border-bottom: 3px solid #1e40af; padding-bottom: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .slide-title { font-size: 28px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; }
+        .slide-sub { font-size: 15px; color: #64748b; font-weight: 600; }
+        .content-block { margin-bottom: 28px; }
+        .section-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; }
+        .section-title::before { content: ""; display: inline-block; width: 5px; height: 18px; background: #2563eb; margin-right: 10px; border-radius: 2px; }
+        .text-body { font-size: 15px; line-height: 1.75; color: #334155; text-align: justify; letter-spacing: -0.3px; }
+        .text-body strong { color: #0f172a; font-weight: 700; background: linear-gradient(180deg, transparent 65%, #bfdbfe 65%); }
+        .text-body ul { padding-left: 20px; margin-top: 8px; }
+        .text-body li { margin-bottom: 6px; }
+        .slide-image-container { width: 100%; margin: 20px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; background: #f8fafc; text-align: center; }
+        .slide-image { width: 100%; height: auto; display: block; object-fit: cover; max-height: 350px; }
+        .image-caption { padding: 10px; font-size: 12px; color: #64748b; font-style: italic; background: #f1f5f9; border-top: 1px solid #e2e8f0; }
+        .info-box { background: #f0f9ff; border: 1px solid #bae6fd; padding: 16px; border-radius: 8px; font-size: 14px; margin: 16px 0; color: #0369a1; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .warn-box { background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 8px; font-size: 14px; margin: 16px 0; color: #b91c1c; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .lab-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .lab-table th { background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; text-align: center; font-weight: 700; color: #475569; }
+        .lab-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #334155; background: #fff; }
 
-        /* 도표 및 박스 스타일 (기존 동일) */
-        .info-box { background: #f5f9ff; border: 1px solid #b3e5fc; padding: 12px; border-radius: 6px; font-size: 13px; margin: 10px 0; color: #0277bd; }
-        .warn-box { background: #fff5f5; border: 1px solid #ffcdd2; padding: 12px; border-radius: 6px; font-size: 13px; margin: 10px 0; color: #c62828; font-weight: 600; }
-        .lab-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
-        .lab-table th { background: #eee; padding: 6px; border: 1px solid #ccc; text-align: center; }
-        .lab-table td { padding: 6px; border: 1px solid #ccc; text-align: center; }
-
-        /* 네비게이션 버튼 */
+        /* [수정] 네비게이션 버튼 (z-index 및 위치 조정) */
         .nav-btn {
             position: absolute; top: 50%; transform: translateY(-50%);
-            width: 44px; height: 44px; background: rgba(0,0,0,0.6); color: white;
+            width: 48px; height: 48px; background: rgba(255,255,255,0.9); color: #334155;
             border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            cursor: pointer; font-size: 20px; z-index: 100; transition: 0.2s;
+            cursor: pointer; font-size: 20px; 
+            z-index: 200; /* 캔버스(5), 포스트잇(50-60), 툴바(100)보다 높게 */
+            transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #e2e8f0;
         }
-        .nav-btn:hover { background: rgba(0,0,0,0.8); }
-        .nav-prev { left: 20px; } .nav-next { right: 20px; }
+        .nav-btn:hover { background: white; transform: translateY(-50%) scale(1.1); color: #2563eb; }
+        .nav-prev { left: 24px; } 
+        .nav-next { right: 24px; }
         .nav-btn.disabled { opacity: 0; pointer-events: none; }
 
-        /* 드래그된 메모 (포스트잇) */
+        /* 메모 스타일 */
         .dropped-note {
-            position: absolute; width: 220px; background-color: #fff9c4; border-left: 4px solid #fbc02d;
-            padding: 10px; font-size: 12px; color: #333; box-shadow: 2px 4px 10px rgba(0,0,0,0.2);
-            border-radius: 0 6px 6px 0; cursor: pointer; z-index: 50; line-height: 1.4;
-            font-family: 'Nanum Pen Script', sans-serif; pointer-events: auto; /* 필기 모드에서도 클릭 가능하게 */
+            position: absolute; width: 280px; background-color: #ffffff; 
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1); 
+            border-radius: 12px; z-index: 50; display: flex; flex-direction: column;
+            transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s;
+            overflow: hidden; border: 1px solid rgba(0,0,0,0.06); font-family: 'Pretendard', sans-serif;
         }
-        .dropped-note:hover { transform: scale(1.05); z-index: 60; }
-        .dropped-note strong { color: #e65100; }
+        .dropped-note:hover { z-index: 60; transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(0,0,0,0.2); }
+        .dropped-note:active { transform: scale(0.98); }
+        .note-header { background: #f8fafc; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; color: #475569; cursor: grab; border-bottom: 1px solid #f1f5f9; user-select: none; }
+        .note-header:active { cursor: grabbing; }
+        .note-header strong { color: #3b82f6; display: flex; align-items: center; gap: 6px; }
+        .note-body { padding: 16px; font-size: 14px; color: #334155; line-height: 1.6; max-height: 320px; overflow-y: auto; white-space: pre-wrap; cursor: text; user-select: text; background-color: #fff; }
+        .dropped-note.collapsed .note-body { display: none; }
+        .dropped-note.collapsed { width: auto; max-width: 220px; }
+        .note-toggle-btn { cursor: pointer; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8; background: transparent; transition: 0.2s; }
+        .note-toggle-btn:hover { background: #e2e8f0; color: #475569; }
 
-        /* --- [오른쪽: 기능 패널] (기존 동일) --- */
-        .right-panel {
-            flex: 0.8; display: flex; flex-direction: column; background: #f7f8fa; border-left: 1px solid #ddd; position: relative;
+        .trash-drop-zone {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+            width: 160px; height: 56px; background: rgba(15, 23, 42, 0.85); color: white;
+            border-radius: 100px; display: flex; justify-content: center; align-items: center; gap: 8px;
+            opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            z-index: 200; font-weight: 600; font-size: 14px; backdrop-filter: blur(8px); box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        
-        /* 탭 메뉴 */
-        .tabs { display: flex; background: white; border-bottom: 1px solid #ddd; flex-shrink: 0; height: 50px; }
-        .tab { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; color: #888; font-size: 14px; transition: 0.2s; }
-        .tab:hover { background: #f9f9f9; }
-        .tab.active { color: #2196f3; border-bottom: 3px solid #2196f3; background: #fff; }
+        .trash-drop-zone.active { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+        .trash-drop-zone.hover { background: #ef4444; transform: translateX(-50%) scale(1.1); box-shadow: 0 15px 30px rgba(239, 68, 68, 0.4); }
 
-        .tab-content-container { flex: 1; overflow-y: auto; position: relative; scroll-behavior: smooth; }
+        /* --- [오른쪽 패널] --- */
+        .right-panel { flex: 0.8; display: flex; flex-direction: column; background: #f8fafc; border-left: 1px solid #e2e8f0; position: relative; }
+        .tabs { display: flex; background: white; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; height: 56px; padding: 0 16px; gap: 8px; }
+        .tab { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; color: #94a3b8; font-size: 14px; transition: 0.2s; border-bottom: 3px solid transparent; margin-top: 8px; }
+        .tab:hover { color: #64748b; }
+        .tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+        .tab-content-container { flex: 1; overflow-y: auto; position: relative; scroll-behavior: smooth; padding-top: 10px; }
         .tab-content { display: none; padding: 20px; padding-bottom: 100px; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s; }
 
-        /* 1. AI 채팅 (Real Chat) */
-        .chat-container { display: flex; flex-direction: column; gap: 16px; }
-        .msg-group { display: flex; flex-direction: column; gap: 6px; }
-        .msg-meta { font-size: 11px; color: #999; margin-left: 4px; display: flex; gap: 6px; }
+        .chat-container { display: flex; flex-direction: column; gap: 20px; }
+        .msg-group { display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background 0.2s; padding: 8px; border-radius: 12px; }
+        .msg-group:hover { background-color: #f1f5f9; }
+        .msg-meta { font-size: 11px; color: #94a3b8; margin-left: 4px; display: flex; gap: 6px; font-weight: 500; }
+        .bubble { max-width: 94%; padding: 16px 20px; border-radius: 16px; font-size: 15px; line-height: 1.65; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
+        .user-msg { align-self: flex-end; background: #3b82f6; color: white; border-bottom-right-radius: 4px; }
+        .ai-msg { align-self: flex-start; background: white; color: #334155; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; position: relative; padding-top: 30px; cursor: text; user-select: text; -webkit-user-select: text; }
+        .ai-msg:hover { border-color: #bfdbfe; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1); }
+        .ai-msg ul { padding-left: 18px; margin-top: 8px; }
         
-        .bubble { max-width: 92%; padding: 12px 16px; border-radius: 12px; font-size: 13.5px; line-height: 1.55; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .user-msg { align-self: flex-end; background: #4a90e2; color: white; border-bottom-right-radius: 2px; }
-        .ai-msg { align-self: flex-start; background: white; color: #333; border: 1px solid #eee; border-bottom-left-radius: 2px; cursor: grab; }
-        .ai-msg:hover { border-color: #2196f3; box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15); }
-        .ai-msg ul { padding-left: 18px; margin-top: 5px; }
-        /* 필기 모드일 때 드래그 방지 */
-        .left-panel.drawing-mode ~ .right-panel .ai-msg { cursor: default; pointer-events: none; opacity: 0.7; }
+        .chat-drag-handle { position: absolute; top: 0; left: 0; right: 0; height: 24px; background: #f8fafc; border-radius: 15px 15px 0 0; display: flex; justify-content: center; align-items: center; cursor: grab; color: #cbd5e1; font-size: 10px; letter-spacing: 2px; border-bottom: 1px solid #f1f5f9; user-select: none; }
+        .chat-drag-handle:hover { background: #eff6ff; color: #3b82f6; }
+        .chat-drag-handle:active { cursor: grabbing; }
 
-
-        /* 2. 족보 (KMLE Style) */
-        .jokbo-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 15px; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .jokbo-card { background: white; padding: 24px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 16px; display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.02); cursor: pointer; position: relative; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .jokbo-card.visible { display: block; animation: fadeIn 0.3s; }
-        .badge-row { margin-bottom: 10px; }
-        .badge { display: inline-block; padding: 3px 8px; font-size: 11px; border-radius: 4px; font-weight: 700; margin-right: 6px; }
-        .badge.year { background: #e3f2fd; color: #1565c0; }
-        .badge.tag { background: #f3e5f5; color: #7b1fa2; }
-        .badge.freq { background: #ffebee; color: #c62828; }
+        #tab-jokbo.expanded .jokbo-card { display: block; animation: fadeIn 0.3s; }
+        .jokbo-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); border-color: #3b82f6; }
         
-        .q-body { font-size: 14px; font-weight: 600; color: #222; margin-bottom: 12px; line-height: 1.5; }
-        .q-lab { font-size: 12px; color: #555; background: #f9f9f9; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-family: monospace; border: 1px solid #eee; }
-        .q-options { font-size: 13px; color: #444; display: flex; flex-direction: column; gap: 4px; }
-        .q-options div { cursor: pointer; padding: 4px 8px; border-radius: 4px; }
-        .q-options div:hover { background: #f0f0f0; }
+        .badge { display: inline-block; padding: 4px 10px; font-size: 11px; border-radius: 6px; font-weight: 700; margin-right: 6px; letter-spacing: -0.3px; }
+        .badge.year { background: #eff6ff; color: #2563eb; } .badge.tag { background: #fdf4ff; color: #c026d3; } .badge.freq { background: #fef2f2; color: #dc2626; }
+        .q-body { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 16px; line-height: 1.5; }
+        .q-options { font-size: 14px; color: #475569; display: flex; flex-direction: column; gap: 6px; }
+        .q-options div { cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 1px solid transparent; transition: 0.1s; }
+        .q-options div:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .jokbo-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px dashed #e2e8f0; }
+        .action-btn { flex: 1; padding: 10px 0; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; font-size: 12px; color: #64748b; cursor: pointer; text-align: center; transition: 0.2s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .action-btn:hover { background: #f8fafc; color: #3b82f6; border-color: #bfdbfe; transform: translateY(-1px); }
+        .action-btn.active { background: #eff6ff; color: #2563eb; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
+        .ai-response-box { margin-top: 16px; padding: 16px; background: #f0fdf4; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #166534; display: none; border: 1px solid #bbf7d0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .ai-response-box.show { display: block; animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .jokbo-expand-btn { text-align: center; padding: 16px; color: #64748b; cursor: pointer; border-top: 1px solid #e2e8f0; margin-top: 10px; font-size: 13px; font-weight: 600; transition: 0.2s; background: white; border-radius: 0 0 12px 12px; }
+        .jokbo-expand-btn:hover { background: #f8fafc; color: #3b82f6; }
 
-        /* 3. 스크립트 (Transcript) */
-        .script-segment { background: white; padding: 16px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 12px; transition: all 0.3s; }
-        .script-segment:hover { border-color: #b3e5fc; background: #fbfdff; }
-        .script-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; color: #888; }
-        .speaker-name { font-weight: 700; color: #1976d2; }
-        .script-text { font-size: 14px; line-height: 1.6; color: #333; }
-        .highlight-text { background: linear-gradient(to top, #fff59d 50%, transparent 50%); }
+        .script-segment { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px; transition: all 0.2s; border-left: 4px solid transparent; }
+        .script-segment:hover { border-color: #bfdbfe; background: #f8fafc; }
+        .active-context-bg { background-color: #fffbeb !important; border-color: #fcd34d !important; box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.15); border-left-color: #f59e0b !important; }
+        .script-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #94a3b8; }
+        .speaker-name { font-weight: 700; color: #3b82f6; }
+        .script-text { font-size: 15px; line-height: 1.65; color: #334155; }
 
-        /* 오디오 플레이어 */
-        .audio-player-bar {
-            position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: white; border-top: 1px solid #ddd;
-            display: flex; align-items: center; padding: 0 25px; gap: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-            display: none; z-index: 200;
-        }
+        .chat-input-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 90px; background: white; border-top: 1px solid #e2e8f0; display: none; align-items: center; padding: 0 30px; gap: 16px; z-index: 200; box-shadow: 0 -10px 40px rgba(0,0,0,0.03); }
+        .chat-input-bar.visible { display: flex; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .chat-input-field { flex: 1; height: 52px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 100px; padding: 0 24px; font-size: 15px; color: #334155; outline: none; transition: all 0.2s; }
+        .chat-input-field:focus { background: white; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .chat-send-btn { width: 52px; height: 52px; background: #3b82f6; border: none; border-radius: 50%; color: white; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: all 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); flex-shrink: 0; }
+        .chat-send-btn:hover { background: #2563eb; transform: scale(1.05); }
+
+        .audio-player-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 80px; background: white; border-top: 1px solid #ddd; display: flex; align-items: center; padding: 0 25px; gap: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); display: none; z-index: 200; }
         .audio-player-bar.visible { display: flex; }
         .play-btn { width: 48px; height: 48px; background: #2196f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.4); transition: 0.2s; }
-        .play-btn:hover { transform: scale(1.05); }
         .timeline-box { flex: 1; display: flex; flex-direction: column; gap: 8px; }
         .timeline-bg { height: 6px; background: #eee; border-radius: 3px; position: relative; overflow: hidden; cursor: pointer; }
         .timeline-fill { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #2196f3; transition: width 0.2s linear; }
         .time-labels { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-family: monospace; }
-        
-        /* 싱크 하이라이트 효과 */
-        .active-context-bg { background-color: #fff9c4 !important; border-color: #fbc02d !important; box-shadow: 0 0 0 2px rgba(251, 192, 45, 0.3); }
-
     </style>
 </head>
 <body>
 
+<div id="home-screen">
+    <div class="home-card">
+        <div class="home-title">Med-Study OS v10</div>
+        <div class="home-subtitle">Upload your study materials to get started</div>
+        <div class="upload-grid">
+            <div class="upload-item" onclick="uploadFile('pdf', this)"><div class="check-mark">✓</div><div class="upload-icon">📄</div><div class="upload-label">Lecture Notes</div><div class="upload-desc">Drop PDF files here</div></div>
+            <div class="upload-item" onclick="uploadFile('jokbo', this)"><div class="check-mark">✓</div><div class="upload-icon">📑</div><div class="upload-label">Past Exams (Jokbo)</div><div class="upload-desc">Upload previous test papers</div></div>
+            <div class="upload-item" onclick="uploadFile('audio', this)"><div class="check-mark">✓</div><div class="upload-icon">🎙️</div><div class="upload-label">Audio / Recording</div><div class="upload-desc">Sync audio with notes</div></div>
+        </div>
+        <button class="start-btn" id="startBtn" onclick="startStudy()">학습 시작하기</button>
+    </div>
+</div>
+
+<div id="main-app">
 <div class="tablet-frame">
     <div class="left-panel" id="leftPanel">
         <div class="pdf-header">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span>📚 Endocrinology_Ch04.pdf</span>
-                <span id="headerPageNum" style="font-weight: normal; color: #999;">Page 13 / 60</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="headerFileName" style="font-weight: 700; color: #1e293b;">📚 No File Loaded</span>
+                <span id="headerPageNum" style="font-weight: normal; color: #94a3b8; font-size: 13px;">Page 1 / 15</span>
             </div>
             <div class="edit-mode-btn" onclick="toggleDrawingMode()">
-                <span style="font-size: 16px;">✏️</span>
-                <span style="font-size: 12px; font-weight: 600;">필기 모드</span>
+                <span style="font-size: 16px;">✏️</span><span style="font-size: 13px; font-weight: 600;">필기 모드</span>
             </div>
         </div>
 
@@ -212,89 +310,186 @@
             <div class="tool-btn active" onclick="setTool('pen', this)" title="펜">🖊️</div>
             <div class="tool-btn" onclick="setTool('highlighter', this)" title="형광펜" style="color: #FFD700;">🖍️</div>
             <div class="tool-btn" onclick="setTool('eraser', this)" title="지우개">🧽</div>
-            <div style="width: 1px; height: 24px; background: #ddd; margin: 0 4px;"></div>
+            <div style="width: 1px; height: 24px; background: #e2e8f0; margin: 0 4px;"></div>
             <div class="tool-btn undo-btn" onclick="undoLastAction()" title="되돌리기">↩️</div>
         </div>
         
         <div class="pdf-viewer-container">
             <div class="nav-btn nav-prev disabled" onclick="changePage(-1)">❮</div>
             <div class="nav-btn nav-next" onclick="changePage(1)">❯</div>
+            <div class="trash-drop-zone" id="trashCan">🗑️ 여기에 놓아 삭제</div>
 
-            <div class="page-wrapper active" id="p13-wrapper">
-                <div class="pdf-page" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div class="slide-header">
-                        <div class="slide-title">Diabetic Ketoacidosis (DKA)</div>
-                        <div class="slide-sub">Endocrinology Part.4</div>
-                    </div>
-                    <div class="content-block">
-                        <div class="section-title">1. Definition & Epidemiology</div>
-                        <p class="text-body">
-                            인슐린의 절대적 결핍(Absolute deficiency)과 대항 호르몬(Counter-regulatory hormones: Glucagon, Catecholamines, Cortisol, GH)의 증가로 인해 발생하는 급성 대사 합병증이다.
-                            <br>주로 제1형 당뇨병(T1DM)에서 발생하나, 극심한 스트레스 상황(감염, 외상)에서는 제2형 당뇨병(T2DM)에서도 발생 가능하다.
-                        </p>
-                    </div>
-                    <div class="content-block">
-                        <div class="section-title">2. Pathophysiology (병태생리)</div>
-                        <p class="text-body">
-                            <strong>(1) Hyperglycemia (고혈당):</strong> 간에서의 포도당 생성 증가(Gluconeogenesis) 및 말초 조직 이용 감소.<br>
-                            <strong>(2) Ketosis (케톤증):</strong> 인슐린 부족 → Lipolysis 증가 → Free Fatty Acid(FFA) 방출 → 간에서 Beta-oxidation → Ketone bodies 생성.<br>
-                        </p>
-                        <div class="info-box">
-                            <strong>💡 Key Mechanism:</strong><br>
-                            Acetoacetate & Beta-hydroxybutyrate (Organic acids) accumulation <br>
-                            → High Anion Gap Metabolic Acidosis (HAGMA)
+            <!-- Page 1 -->
+            <div class="page-wrapper active" id="p1-wrapper">
+                <div class="pdf-page" id="p1" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div style="height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                        <h1 style="font-size: 42px; color: #1e3a8a; margin-bottom: 20px;">The Chromosomal Basis of Inheritance</h1>
+                        <h3 style="color: #64748b; font-weight: 500;">Chapter 12</h3>
+                        <div style="width: 80px; height: 6px; background: #2563eb; margin: 40px 0; border-radius: 4px;"></div>
+                        <div class="slide-image-container" style="max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 40px;">
+                            <span style="font-size: 60px;">🧬</span><div class="image-caption" style="margin-top: 20px;">[Image of Chromosome DNA Structure]</div>
                         </div>
+                        <p style="color: #94a3b8; margin-top: 40px;">From Mendel to Modern Genetics</p>
                     </div>
-                    <div class="dropped-note" style="top:450px; left:450px;" onclick="focusChat('chat-13-1')">📌 AI 메모: 병태생리 핵심 요약</div>
+                </div>
+                <canvas id="canvas-p1" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 2 -->
+            <div class="page-wrapper" id="p2-wrapper">
+                <div class="pdf-page" id="p2" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Overview: Locating Genes</div><div class="slide-sub">Chromosome Theory</div></div>
+                    <div class="content-block"><div class="section-title">History: Sutton and Boveri (1902)</div><p class="text-body">1902년경, 세포학자들은 감수분열 시 염색체의 거동이 멘델의 "유전 인자" 행동과 일치함을 발견하고, <strong>염색체설(Chromosome Theory)</strong>을 제창했습니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x300/f1f5f9/334155?text=Diagram:+Meiosis+and+Segregation" class="slide-image"><div class="image-caption">[Image 1] Mendel's Laws correlated with Meiosis</div></div>
+                    <div class="content-block"><div class="section-title">Core Principles</div><p class="text-body">1. 유전자는 염색체의 특정 위치(Loci)에 존재한다.<br>2. 분리의 법칙과 독립의 법칙은 감수분열 과정으로 설명된다.</p></div>
+                    <div class="dropped-note" id="note-p2" style="top:400px; left:400px;"><div class="note-header"><strong>AI 메모</strong><span class="note-toggle-btn" onclick="toggleNote(this)">▼</span></div><div class="note-body" onclick="focusChat('chat-p2')">염색체설의 핵심: 멘델의 유전자가 염색체 위에 있다는 이론.</div></div>
+                </div>
+                <canvas id="canvas-p2" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 3 -->
+            <div class="page-wrapper" id="p3-wrapper">
+                <div class="pdf-page" id="p3" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Morgan's Experimental Model</div><div class="slide-sub">Drosophila melanogaster</div></div>
+                    <div class="content-block"><div class="section-title">Why Fruit Flies?</div><p class="text-body">모건은 초파리를 모델로 선택했습니다. 1. 다산성(Prolific) 2. 짧은 세대(2주) 3. 단순한 염색체(4쌍).</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x350/f1f5f9/334155?text=Image:+Drosophila+Melanogaster" class="slide-image"><div class="image-caption">[Image 2] Common Fruit Fly</div></div>
+                    <div class="info-box"><strong>Wild type vs Mutant:</strong> 야생형(붉은 눈, $w^+$) vs 돌연변이형(흰 눈, $w$).</div>
+                </div>
+                <canvas id="canvas-p3" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 4 -->
+            <div class="page-wrapper" id="p4-wrapper">
+                <div class="pdf-page" id="p4" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Morgan's Experiment</div><div class="slide-sub">Sex-Linkage Discovery</div></div>
+                    <div class="content-block"><div class="section-title">The Cross</div><p class="text-body">흰 눈 수컷 x 붉은 눈 암컷 교배 결과, F2 세대에서 <strong>흰 눈은 오직 수컷에서만</strong> 발견되었습니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x400/f1f5f9/334155?text=Diagram:+Cross+of+White-Eyed+Male" class="slide-image"><div class="image-caption"> F2 Generation ratio</div></div>
+                    <div class="warn-box"><strong>Conclusion:</strong> 눈 색깔 유전자는 <strong>X 염색체</strong> 위에 존재한다.</div>
+                </div>
+                <canvas id="canvas-p4" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 5 -->
+            <div class="page-wrapper" id="p5-wrapper">
+                <div class="pdf-page" id="p5" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Sex Chromosomes</div><div class="slide-sub">X-Y System</div></div>
+                    <div class="content-block"><div class="section-title">Mammalian Sex Determination</div><p class="text-body">Female (XX), Male (XY). Y 염색체는 매우 작으며 <strong>SRY 유전자</strong>가 있어 정소 발달을 유도합니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x300/f1f5f9/334155?text=Image:+XY+Karyotype" class="slide-image"><div class="image-caption">[Image of Human XY Chromosomes]</div></div>
+                </div>
+                <canvas id="canvas-p5" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 6 -->
+            <div class="page-wrapper" id="p6-wrapper">
+                <div class="pdf-page" id="p6" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Sex-Linked Inheritance</div><div class="slide-sub">Transmission</div></div>
+                    <div class="content-block"><p class="text-body">아버지는 딸에게만 X를 주고, 어머니는 모두에게 X를 줍니다. 남성은 <strong>Hemizygous</strong>하여 열성 형질이 바로 발현됩니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x400/f1f5f9/334155?text=Diagram:+Punnett+Square+Color+Blindness" class="slide-image"><div class="image-caption">[Image of Color Blindness Inheritance]</div></div>
+                </div>
+                <canvas id="canvas-p6" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 7 -->
+            <div class="page-wrapper" id="p7-wrapper">
+                <div class="pdf-page" id="p7" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">X Inactivation</div><div class="slide-sub">Barr Body</div></div>
+                    <div class="content-block"><p class="text-body">여성 세포의 두 X 중 하나는 무작위로 응축되어 <strong>바소체(Barr body)</strong>가 됩니다. (예: 삼색 고양이)</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x350/f1f5f9/334155?text=Image:+Calico+Cat" class="slide-image"><div class="image-caption"></div></div>
+                </div>
+                <canvas id="canvas-p7" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 8 -->
+            <div class="page-wrapper" id="p8-wrapper">
+                <div class="pdf-page" id="p8" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Linked Genes</div><div class="slide-sub">Linkage</div></div>
+                    <div class="content-block"><p class="text-body">같은 염색체에 있는 유전자는 함께 유전되는 경향이 있습니다. 모건은 몸 색깔과 날개 크기가 연관됨을 발견했습니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x300/f1f5f9/334155?text=Diagram:+Linked+Genes+on+Chromosome" class="slide-image"><div class="image-caption"></div></div>
+                </div>
+                <canvas id="canvas-p8" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 9 -->
+            <div class="page-wrapper" id="p9-wrapper">
+                <div class="pdf-page" id="p9" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Genetic Recombination</div><div class="slide-sub">Crossing Over</div></div>
+                    <div class="content-block"><p class="text-body">연관 유전자라도 <strong>교차(Crossing over)</strong>를 통해 재조합형 자손이 나타날 수 있습니다. (감수 1분열 전기)</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x400/f1f5f9/334155?text=Diagram:+Crossing+Over+Mechanism" class="slide-image"><div class="image-caption">[Image of Crossing Over during Meiosis I]</div></div>
+                </div>
+                <canvas id="canvas-p9" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 10 -->
+            <div class="page-wrapper" id="p10-wrapper">
+                <div class="pdf-page" id="p10" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Genetic Mapping</div><div class="slide-sub">Linkage Map</div></div>
+                    <div class="content-block"><p class="text-body">재조합 빈도는 유전자 간 거리에 비례합니다. <strong>1 Map Unit = 1% Recombination Frequency</strong>.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x250/f1f5f9/334155?text=Diagram:+Genetic+Map" class="slide-image"><div class="image-caption"></div></div>
+                </div>
+                <canvas id="canvas-p10" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 11 -->
+            <div class="page-wrapper" id="p11-wrapper">
+                <div class="pdf-page" id="p11" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Nondisjunction</div><div class="slide-sub">Meiotic Error</div></div>
+                    <div class="content-block"><p class="text-body">감수분열 중 염색체가 제대로 분리되지 않는 현상(비분리)은 이수성(Aneuploidy)의 원인이 됩니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x400/f1f5f9/334155?text=Diagram:+Nondisjunction+in+Meiosis+I+and+II" class="slide-image"><div class="image-caption"></div></div>
+                </div>
+                <canvas id="canvas-p11" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 12 -->
+            <div class="page-wrapper" id="p12-wrapper">
+                <div class="pdf-page" id="p12" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Aneuploidy Types</div><div class="slide-sub">Monosomy & Trisomy</div></div>
+                    <table class="lab-table"><tr><th>Type</th><th>Formula</th><th>Example</th></tr><tr><td>Monosomic</td><td>2n-1</td><td>Turner (XO)</td></tr><tr><td>Trisomic</td><td>2n+1</td><td>Down (21)</td></tr></table>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x300/f1f5f9/334155?text=Image:+Karyotype+Examples" class="slide-image"><div class="image-caption"></div></div>
+                </div>
+                <canvas id="canvas-p12" class="drawing-canvas"></canvas>
+            </div>
+
+            <!-- Page 13 -->
+            <div class="page-wrapper" id="p13-wrapper">
+                <div class="pdf-page" id="p13" ondrop="drop(event)" ondragover="allowDrop(event)">
+                    <div class="slide-header"><div class="slide-title">Structural Alterations</div><div class="slide-sub">Chromosome Mutations</div></div>
+                    <div class="content-block"><p class="text-body">Deletion (결실), Duplication (중복), Inversion (역위), Translocation (전좌).</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x400/f1f5f9/334155?text=Diagram:+4+Types+of+Structural+Changes" class="slide-image"><div class="image-caption">[Image of Deletion, Duplication, Inversion, Translocation]</div></div>
                 </div>
                 <canvas id="canvas-p13" class="drawing-canvas"></canvas>
             </div>
 
+            <!-- Page 14 -->
             <div class="page-wrapper" id="p14-wrapper">
                 <div class="pdf-page" id="p14" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div class="slide-header">
-                        <div class="slide-title">Precipitating Factors</div>
-                        <div class="slide-sub">What triggers DKA?</div>
-                    </div>
-                    <div class="content-block">
-                        <div class="section-title">Common Triggers (유발 인자)</div>
-                        <p class="text-body">
-                            <ul>
-                                <li><strong>Infection (m/c, 30-40%):</strong> Pneumonia, UTI, Sepsis.</li>
-                                <li><strong>Insulin Omission:</strong> 환자의 임의 투여 중단, 펌프 고장.</li>
-                                <li><strong>New Onset DM:</strong> 당뇨인 줄 몰랐던 환자의 첫 증상 (20-25%).</li>
-                                <li>Acute Illness: MI, CVA, Pancreatitis, Trauma.</li>
-                                <li>Drugs: Steroids, Thiazides, SGLT2 inhibitors (Euglycemic DKA).</li>
-                            </ul>
-                        </p>
-                    </div>
-                    <div class="warn-box">
-                        <strong>⚠️ Clinical Pearl:</strong><br>
-                        감염 징후(발열)가 없더라도 백혈구 증가(Leukocytosis)는 DKA 자체로 나타날 수 있다. (Stress response)
-                    </div>
+                    <div class="slide-header"><div class="slide-title">Down Syndrome</div><div class="slide-sub">Trisomy 21</div></div>
+                    <div class="content-block"><p class="text-body">21번 염색체가 3개인 질환. 산모의 나이가 많을수록 빈도가 증가합니다.</p></div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x350/f1f5f9/334155?text=Image:+Trisomy+21+Karyotype" class="slide-image"><div class="image-caption">[Image of Trisomy 21 Karyotype]</div></div>
                 </div>
                 <canvas id="canvas-p14" class="drawing-canvas"></canvas>
             </div>
 
+            <!-- Page 15 -->
             <div class="page-wrapper" id="p15-wrapper">
                 <div class="pdf-page" id="p15" ondrop="drop(event)" ondragover="allowDrop(event)">
-                     <div class="slide-header"><div class="slide-title">Clinical Features</div></div>
-                     <p style="padding: 50px; color: #999; text-align: center;">(Page 15 내용...)</p>
+                    <div class="slide-header"><div class="slide-title">Summary</div><div class="slide-sub">Chapter 12 Review</div></div>
+                    <div class="content-block">
+                        <ul style="line-height:2;">
+                            <li>Genes are on chromosomes (Chromosome Theory).</li>
+                            <li>Sex-linked genes exhibit unique inheritance patterns.</li>
+                            <li>Linked genes tend to be inherited together but can cross over.</li>
+                            <li>Errors in meiosis cause chromosomal disorders.</li>
+                        </ul>
+                    </div>
+                    <div class="slide-image-container"><img src="https://placehold.co/700x250/f1f5f9/334155?text=Image:+Concept+Map" class="slide-image"><div class="image-caption"></div></div>
                 </div>
                 <canvas id="canvas-p15" class="drawing-canvas"></canvas>
             </div>
-            <div class="page-wrapper" id="p16-wrapper">
-                <div class="pdf-page" id="p16" ondrop="drop(event)" ondragover="allowDrop(event)">
-                     <div class="slide-header"><div class="slide-title">Diagnosis & Lab Findings</div></div>
-                     <p style="padding: 50px; color: #999; text-align: center;">(Page 16 내용...)</p>
-                </div>
-                <canvas id="canvas-p16" class="drawing-canvas"></canvas>
-            </div>
-
 
         </div>
     </div>
 
+    <!-- Right Panel -->
     <div class="right-panel">
         <div class="tabs">
             <div class="tab active" onclick="showTab('tab-chat')">AI 채팅</div>
@@ -304,339 +499,174 @@
 
         <div class="tab-content-container">
             <div id="tab-chat" class="tab-content active">
-                <div class="chat-container">
-                    <div class="msg-group" id="chat-13-1">
-                        <div class="msg-meta"><span>Page 13</span><span>•</span><span>병태생리</span></div>
-                        <div class="bubble user-msg">DKA의 핵심 기전이 뭐야?</div>
-                        <div class="bubble ai-msg" draggable="true" ondragstart="drag(event)">
-                            <strong>3대 요소</strong>가 핵심입니다.<br>
-                            1. 인슐린 결핍 (Insulin deficiency)<br>
-                            2. 대항 호르몬 증가 (Counter-regulatory hormones ↑)<br>
-                            이로 인해 <strong>지방 분해(Lipolysis)</strong>가 가속화되고, 간에서 케톤체가 생성되어 <strong>대사성 산증</strong>이 발생합니다.
+                <div class="chat-container" id="chatContainer">
+                    <div class="msg-group" id="chat-p3" onclick="goToPage('3')">
+                        <div class="msg-meta"><span>Page 3</span><span>•</span><span>Morgan's Choice</span></div>
+                        <div class="bubble user-msg">왜 하필 초파리를 쓴 거야?</div>
+                        <div class="bubble ai-msg">
+                            <div class="chat-drag-handle" draggable="true" ondragstart="dragWholeBubble(event)">::: (Drag)</div>
+                            <strong>초파리(<em>Drosophila melanogaster</em>)를 선택한 이유:</strong><br><br>
+                            1. <strong>높은 번식력(High Fecundity):</strong> 한 번의 교배로 수백 마리의 자손을 낳아 통계적으로 유의미한 유전학적 데이터를 얻기에 매우 유리합니다.<br>
+                            2. <strong>짧은 세대 기간(Short Generation Time):</strong> 약 2주면 알에서 성체로 자라 새로운 세대를 형성하므로, 짧은 시간 안에 여러 세대에 걸친 유전 현상을 관찰할 수 있습니다.<br>
+                            3. <strong>단순한 유전체(Simple Genome):</strong> 단 4쌍의 염색체(3쌍의 상염색체와 1쌍의 성염색체)만을 가지고 있어 유전자 지도 작성과 돌연변이 추적에 용이합니다.<br>
+                            4. <strong>경제성:</strong> 작은 병에서 쉽게 키울 수 있어 유지 비용이 매우 저렴합니다.
                         </div>
                     </div>
+                    <div class="msg-group" id="chat-p5" onclick="goToPage('5')">
+                        <div class="msg-meta"><span>Page 5</span><span>•</span><span>Sex Determination</span></div>
+                        <div class="bubble user-msg">SRY 유전자가 정확히 뭐야?</div>
+                        <div class="bubble ai-msg">
+                            <div class="chat-drag-handle" draggable="true" ondragstart="dragWholeBubble(event)">::: (Drag)</div>
+                            <strong>SRY (Sex-determining Region Y) 유전자란?</strong><br><br>
+                            Y 염색체에 위치한 핵심적인 성 결정 유전자입니다. 이 유전자는 미분화된 생식선을 <strong>정소(Testes)</strong>로 발달시키는 '마스터 스위치' 역할을 합니다.<br><br>
+                            - <strong>작용 기전:</strong> SRY 유전자가 발현되면 고환 결정 인자(TDF)라는 단백질이 생성되어, 남성 생식기관 발달을 유도하는 다른 유전자들을 활성화합니다.<br>
+                            - <strong>결과:</strong> SRY가 있으면 남성이 되고, 없으면(XX 또는 XY라도 SRY 결실 시) 난소 발달 경로를 따라 여성이 됩니다.
+                        </div>
                     </div>
+                    <div class="msg-group" id="chat-p9" onclick="goToPage('9')">
+                        <div class="msg-meta"><span>Page 9</span><span>•</span><span>Recombination</span></div>
+                        <div class="bubble user-msg">교차(Crossing over)는 언제 일어나?</div>
+                        <div class="bubble ai-msg">
+                            <div class="chat-drag-handle" draggable="true" ondragstart="dragWholeBubble(event)">::: (Drag)</div>
+                            <strong>교차(Crossing over)의 시기와 기전:</strong><br><br>
+                            - <strong>시기:</strong> <strong>감수 1분열 전기(Prophase I)</strong>에 일어납니다.<br>
+                            - <strong>과정:</strong> 상동 염색체끼리 짝을 지어 붙어있는 <strong>접합(Synapsis)</strong> 상태에서, 비자매 염색분체(Non-sister chromatids)끼리 DNA 조각을 교환합니다. 이때 교차가 일어난 지점을 **키아스마(Chiasmata)**라고 합니다.<br>
+                            - <strong>의의:</strong> 부모 세대에는 없던 새로운 유전자 조합을 가진 <strong>재조합 염색체(Recombinant chromosomes)</strong>를 만들어내어, 자손의 유전적 다양성을 크게 증가시킵니다.
+                        </div>
+                    </div>
+                    <div class="msg-group" id="chat-p10" onclick="goToPage('10')">
+                        <div class="msg-meta"><span>Page 10</span><span>•</span><span>Genetic Mapping</span></div>
+                        <div class="bubble user-msg">Map Unit 계산은 어떻게 해?</div>
+                        <div class="bubble ai-msg">
+                            <div class="chat-drag-handle" draggable="true" ondragstart="dragWholeBubble(event)">::: (Drag)</div>
+                            <strong>유전자 지도 거리(Map Unit) 계산법:</strong><br><br>
+                            1 Map Unit(또는 1 Centimorgan, cM)은 <strong>1%의 재조합 빈도(Recombination Frequency)</strong>로 정의됩니다.<br><br>
+                            <strong>공식:</strong><br>
+                            $$ \text{Map Unit} = \frac{\text{재조합된 자손 수}}{\text{총 자손 수}} \times 100(\%) $$<br><br>
+                            <strong>예시:</strong><br>
+                            총 자손 1000마리 중 부모와 다른 형질 조합(재조합형)을 가진 자손이 170마리라면?<br>
+                            $$ \frac{170}{1000} \times 100 = 17\% $$<br>
+                            따라서 두 유전자 사이의 거리는 <strong>17 Map Units (17 cM)</strong>입니다.
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="tab-jokbo" class="tab-content">
-                 <div class="jokbo-card p13-item visible">
-                    <div class="q-body">Q. DKA 발생 시 증가하는 호르몬이 아닌 것은?</div>
-                 </div>
+                <div id="jokbo-list">
+                    <div class="jokbo-card p4-item visible" onclick="goToPage('4')">
+                        <div class="badge-row"><span class="badge year">기출</span><span class="badge freq">★중요</span></div>
+                        <div class="q-body">Q. 모건의 실험에서 F2 세대의 흰 눈(White-eyed) 개체는 어떤 특징을 보였는가?</div>
+                        <div class="q-options"><div>③ <strong>수컷에서만 나타났다.</strong></div></div>
+                        <div class="jokbo-actions" onclick="event.stopPropagation()">
+                            <div class="action-btn" onclick="handleJokboAction('answer', this)">📝 정답 및 해설</div>
+                            <div class="action-btn" onclick="handleJokboAction('point', this)">🎯 출제포인트</div>
+                            <div class="action-btn" onclick="handleJokboAction('twin', this)">🔄 쌍둥이문제</div>
+                        </div>
+                        <div class="ai-response-box"></div>
+                    </div>
+                    <div class="jokbo-card p6-item" onclick="goToPage('6')"><div class="q-body">Q. 적록 색맹이 남성에게 흔한 이유?</div><div class="q-options"><div>② Hemizygous하기 때문</div></div><div class="jokbo-actions" onclick="event.stopPropagation()"><div class="action-btn" onclick="handleJokboAction('answer', this)">📝 해설</div><div class="action-btn" onclick="handleJokboAction('point', this)">🎯 포인트</div></div><div class="ai-response-box"></div></div>
+                </div>
+                <div class="jokbo-expand-btn" id="jokboExpandBtn" onclick="toggleJokboExpand()"><span>▼</span> 전체 문제 보기</div>
             </div>
             <div id="tab-script" class="tab-content">
-                 </div>
-        </div>
-
-        <div class="audio-player-bar" id="audioPlayer">
+                <div class="script-segment" id="script-p2"><div class="script-header"><span class="speaker-name">교수님</span></div><div class="script-text">오늘은 12단원입니다. 염색체설의 시작에 대해 알아봅시다.</div></div>
             </div>
+        </div>
+        <div class="chat-input-bar visible" id="chatInputBar"><input type="text" class="chat-input-field" id="userQueryInput" placeholder="AI에게 질문하기..."><button class="chat-send-btn" id="sendBtn">▶</button></div>
+        <div class="audio-player-bar" id="audioPlayer"><div class="play-btn">▶</div><div class="timeline-box"><div class="timeline-bg"><div class="timeline-fill" id="audioProgress"></div></div><div class="time-labels"><span>00:00</span><span>20:00</span></div></div></div>
     </div>
+</div>
 </div>
 
 <script>
-    // [전역 변수 설정]
-    const pages = ['p13', 'p14', 'p15', 'p16', 'p17', 'p18', 'p19', 'p20', 'p21', 'p22'];
+    // (Script Logic Unchanged except for ensuring goToPage is robust)
+    const pages = Array.from({length: 15}, (_, i) => `p${i+1}`);
     let currentPageIdx = 0;
+    const apiKey = "";
+    let isDrawingMode = false, currentTool = 'pen', isPainting = false, currentCanvas, ctx, lastX = 0, lastY = 0;
+    const canvasHistory = {}; const maxHistoryStep = 20; let isJokboExpanded = false;
+
+    window.onload = function() { initCanvases(); initGeminiChat(); syncRightPanel('1'); const n=document.getElementById('note-p2'); if(n) initNoteEvents(n); };
+
+    function uploadFile(t,e){ if(e.classList.contains('completed'))return; e.style.opacity='0.7'; setTimeout(()=>{e.classList.add('completed'); e.style.opacity='1'; if(document.querySelectorAll('.upload-item.completed').length>0)document.getElementById('startBtn').classList.add('active');},800); }
+    function startStudy(){ document.getElementById('home-screen').classList.add('hidden'); setTimeout(()=>{document.getElementById('home-screen').style.display='none'; document.getElementById('main-app').classList.add('visible'); initCanvases(); document.getElementById('headerFileName').innerText='📚 Campbell Biology_Ch12.pdf';},500); }
     
-    // 필기 관련 변수
-    let isDrawingMode = false;
-    let currentTool = 'pen'; // 'pen', 'highlighter', 'eraser'
-    let isPainting = false;
-    let currentCanvas, ctx;
-    let lastX = 0, lastY = 0;
+    function goToPage(n){ const t=parseInt(n)-1; if(t<0||t>=pages.length)return; document.getElementById(`${pages[currentPageIdx]}-wrapper`).classList.remove('active'); currentPageIdx=t; document.getElementById(`${pages[currentPageIdx]}-wrapper`).classList.add('active'); document.getElementById('headerPageNum').innerText=`Page ${n} / 15`; updateCurrentCanvas(); syncRightPanel(n); 
+        const prevBtn = document.querySelector('.nav-prev');
+        const nextBtn = document.querySelector('.nav-next');
+        if (prevBtn) prevBtn.classList.toggle('disabled', currentPageIdx === 0);
+        if (nextBtn) nextBtn.classList.toggle('disabled', currentPageIdx === pages.length - 1);
+    }
+    function changePage(d){ const n=currentPageIdx+d; if(n<0||n>=pages.length)return; document.getElementById(`${pages[currentPageIdx]}-wrapper`).classList.remove('active'); currentPageIdx=n; document.getElementById(`${pages[currentPageIdx]}-wrapper`).classList.add('active'); const p=pages[currentPageIdx].replace('p',''); document.getElementById('headerPageNum').innerText=`Page ${p} / 15`; updateCurrentCanvas(); syncRightPanel(p); 
+        const prevBtn = document.querySelector('.nav-prev');
+        const nextBtn = document.querySelector('.nav-next');
+        if (prevBtn) prevBtn.classList.toggle('disabled', currentPageIdx === 0);
+        if (nextBtn) nextBtn.classList.toggle('disabled', currentPageIdx === pages.length - 1);
+    }
+
+    function toggleDrawingMode(){ isDrawingMode=!isDrawingMode; const p=document.getElementById('leftPanel'); const t=document.getElementById('drawingToolbar'); const b=document.querySelector('.edit-mode-btn'); if(isDrawingMode){p.classList.add('drawing-mode');t.classList.add('visible');b.classList.add('active');b.querySelector('span:last-child').innerText='필기 종료';}else{p.classList.remove('drawing-mode');t.classList.remove('visible');b.classList.remove('active');b.querySelector('span:last-child').innerText='필기 모드';} }
+    function setTool(t,e){ currentTool=t; document.querySelectorAll('.tool-btn').forEach(el=>el.classList.remove('active')); e.classList.add('active'); }
+    function updateCurrentCanvas(){ currentCanvas=document.getElementById(`canvas-${pages[currentPageIdx]}`); ctx=currentCanvas.getContext('2d',{willReadFrequently:true}); }
+    function startDrawing(e){ if(!isDrawingMode)return; isPainting=true; [lastX,lastY]=getCoords(e); saveHist(); draw(e); }
+    function draw(e){ if(!isPainting||!isDrawingMode)return; const [x,y]=getCoords(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); if(currentTool==='pen'){ctx.strokeStyle='#222';ctx.lineWidth=2;ctx.globalCompositeOperation='source-over';}else if(currentTool==='highlighter'){ctx.strokeStyle='rgba(255,235,59,0.4)';ctx.lineWidth=20;ctx.globalCompositeOperation='source-over';}else{ctx.lineWidth=30;ctx.globalCompositeOperation='destination-out';} ctx.stroke(); [lastX,lastY]=[x,y]; }
+    function stopDrawing(){ if(isPainting){isPainting=false;ctx.beginPath();} }
+    function getCoords(e){ const r=currentCanvas.getBoundingClientRect(); const x=e.clientX||e.touches[0].clientX; const y=e.clientY||e.touches[0].clientY; return [x-r.left,y-r.top]; }
+    function saveHist(){ const id=pages[currentPageIdx]; if(!canvasHistory[id])canvasHistory[id]=[]; canvasHistory[id].push(ctx.getImageData(0,0,currentCanvas.width,currentCanvas.height)); if(canvasHistory[id].length>maxHistoryStep)canvasHistory[id].shift(); }
+    function undoLastAction(){ const id=pages[currentPageIdx]; if(canvasHistory[id]&&canvasHistory[id].length>0)ctx.putImageData(canvasHistory[id].pop(),0,0); else ctx.clearRect(0,0,currentCanvas.width,currentCanvas.height); }
     
-    // Undo를 위한 히스토리 저장소 (페이지별로 관리)
-    const canvasHistory = {}; // { 'p13': [imageData1, imageData2, ...], ... }
-    const maxHistoryStep = 20; // 최대 실행 취소 단계
+    function initCanvases(){ document.querySelectorAll('.page-wrapper').forEach(w=>{ const id=w.id.replace('-wrapper',''); const c=document.getElementById(`canvas-${id}`); const p=document.getElementById(id); c.width=p.offsetWidth; c.height=p.offsetHeight; c.addEventListener('mousedown',startDrawing); c.addEventListener('mousemove',draw); c.addEventListener('mouseup',stopDrawing); c.addEventListener('mouseout',stopDrawing); c.addEventListener('touchstart',e=>{e.preventDefault();startDrawing(e)},{passive:false}); c.addEventListener('touchmove',e=>{e.preventDefault();draw(e)},{passive:false}); c.addEventListener('touchend',stopDrawing); canvasHistory[id]=[]; }); updateCurrentCanvas(); }
 
-    // [초기화]
-    window.onload = function() {
-        initCanvases();
-        // 초기 페이지 동기화
-        syncRightPanel(pages[currentPageIdx].replace('p', ''));
-    };
-
-    // [캔버스 초기화 함수]
-    function initCanvases() {
-        const wrappers = document.querySelectorAll('.page-wrapper');
-        wrappers.forEach(wrapper => {
-            const pageId = wrapper.id.replace('-wrapper', '');
-            const canvas = document.getElementById(`canvas-${pageId}`);
-            const pdfPage = document.getElementById(pageId);
-            
-            // 캔버스 크기를 실제 PDF 페이지 크기와 맞춤
-            canvas.width = pdfPage.offsetWidth;
-            canvas.height = pdfPage.offsetHeight;
-
-            // 이벤트 리스너 연결
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-            
-            // 터치 지원
-            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-            canvas.addEventListener('touchend', stopDrawing);
-
-            // 히스토리 초기화
-            canvasHistory[pageId] = [];
-        });
-        updateCurrentCanvas(); // 현재 페이지 캔버스 설정
+    function syncRightPanel(p){ if(isJokboExpanded) toggleJokboExpand(); document.querySelectorAll('.jokbo-card').forEach(c=>c.classList.remove('visible'));
+        if(['4','5'].includes(p)) document.querySelector('.p4-item')?.classList.add('visible');
+        if(['6','7'].includes(p)) document.querySelector('.p6-item')?.classList.add('visible');
+        const map={'2':'script-p2','3':'chat-p3','5':'chat-p5','9':'chat-p9','10':'chat-p10'};
+        const t=map[p]; if(t){ const el=document.getElementById(t); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); highlight(el); }
     }
-
-    // [페이지 변경 로직 (수정됨)]
-    function changePage(direction) {
-        const nextIdx = currentPageIdx + direction;
-        if (nextIdx < 0 || nextIdx >= pages.length) return;
-
-        // 이전 페이지 숨기기
-        document.getElementById(`${pages[currentPageIdx]}-wrapper`).classList.remove('active');
-        
-        // 새 페이지 보여주기
-        currentPageIdx = nextIdx;
-        const newPageId = pages[currentPageIdx];
-        document.getElementById(`${newPageId}-wrapper`).classList.add('active');
-        
-        const pageNum = newPageId.replace('p', '');
-        document.getElementById('headerPageNum').innerText = `Page ${pageNum} / 60`;
-        
-        document.querySelector('.nav-prev').classList.toggle('disabled', currentPageIdx === 0);
-        document.querySelector('.nav-next').classList.toggle('disabled', currentPageIdx === pages.length - 1);
-
-        updateCurrentCanvas(); // 캔버스 타겟 업데이트
-        syncRightPanel(pageNum);
-    }
-
-    // [필기 모드 토글]
-    function toggleDrawingMode() {
-        isDrawingMode = !isDrawingMode;
-        const leftPanel = document.getElementById('leftPanel');
-        const toolbar = document.getElementById('drawingToolbar');
-        const btn = document.querySelector('.edit-mode-btn');
-        
-        if (isDrawingMode) {
-            leftPanel.classList.add('drawing-mode');
-            toolbar.classList.add('visible');
-            btn.classList.add('active');
-            btn.querySelector('span:last-child').innerText = '필기 종료';
-        } else {
-            leftPanel.classList.remove('drawing-mode');
-            toolbar.classList.remove('visible');
-            btn.classList.remove('active');
-             btn.querySelector('span:last-child').innerText = '필기 모드';
-        }
-    }
-
-    // [도구 선택]
-    function setTool(tool, element) {
-        currentTool = tool;
-        document.querySelectorAll('.tool-btn').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-    }
-
-    // [현재 캔버스 컨텍스트 업데이트]
-    function updateCurrentCanvas() {
-        const pageId = pages[currentPageIdx];
-        currentCanvas = document.getElementById(`canvas-${pageId}`);
-        ctx = currentCanvas.getContext('2d', { willReadFrequently: true });
-    }
+    function highlight(el){ if(!el)return; document.querySelectorAll('.active-context-bg').forEach(e=>e.classList.remove('active-context-bg')); el.classList.add('active-context-bg'); setTimeout(()=>el.classList.remove('active-context-bg'),2000); }
+    function showTab(id){ document.querySelectorAll('.tab,.tab-content').forEach(e=>e.classList.remove('active')); document.getElementById(id).classList.add('active'); const idx=['tab-chat','tab-jokbo','tab-script'].indexOf(id); document.querySelectorAll('.tab')[idx].classList.add('active'); const p=document.getElementById('audioPlayer'); const c=document.getElementById('chatInputBar'); if(id==='tab-script')p.classList.add('visible');else p.classList.remove('visible'); if(id==='tab-chat')c.classList.add('visible');else c.classList.remove('visible'); }
     
-    // [그리기 시작]
-    function startDrawing(e) {
-        if (!isDrawingMode) return;
-        isPainting = true;
-        [lastX, lastY] = getCoordinates(e);
-        
-        // 그리기 직전 상태 저장 (Undo용)
-        saveHistory();
-
-        // 점만 찍었을 때도 그려지도록
-        draw(e);
-    }
-
-    // [그리기 동작]
-    function draw(e) {
-        if (!isPainting || !isDrawingMode) return;
-        
-        const [x, y] = getCoordinates(e);
-        ctx.beginPath();
-        ctx.moveTo(lastX, lastY);
-        ctx.lineTo(x, y);
-        
-        // 도구별 스타일 설정
-        if (currentTool === 'pen') {
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.globalCompositeOperation = 'source-over'; // 기본 덮어쓰기
-        } else if (currentTool === 'highlighter') {
-            ctx.strokeStyle = 'rgba(255, 235, 59, 0.4)'; // 반투명 노랑
-            ctx.lineWidth = 20;
-            ctx.lineCap = 'butt'; // 형광펜 느낌을 위해 끝을 뭉툭하게
-            ctx.lineJoin = 'round';
-             ctx.globalCompositeOperation = 'source-over';
-             // *참고: 실제 형광펜처럼 글씨 뒤로 가게 하려면 'multiply' blend mode가 필요하지만, 
-             // 별도 캔버스 레이어에서는 구현이 복잡해 반투명 선으로 대체합니다.
-        } else if (currentTool === 'eraser') {
-            ctx.lineWidth = 30;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            // 지우개 모드: 그려진 내용을 투명하게 만듦
-            ctx.globalCompositeOperation = 'destination-out'; 
-        }
-        
-        ctx.stroke();
-        [lastX, lastY] = [x, y];
-    }
-
-    // [그리기 종료]
-    function stopDrawing() {
-        if (isPainting) {
-            isPainting = false;
-            ctx.beginPath(); // 경로 초기화
-        }
-    }
-
-    // [좌표 계산]
-    function getCoordinates(e) {
-        const rect = currentCanvas.getBoundingClientRect();
-        const x = e.clientX || e.touches[0].clientX;
-        const y = e.clientY || e.touches[0].clientY;
-        return [x - rect.left, y - rect.top];
-    }
+    function focusChat(id){ showTab('tab-chat'); const el=document.getElementById(id); if(el){el.scrollIntoView({behavior:'smooth',block:'center'}); highlight(el);} }
+    function toggleNote(btn){ const n=btn.closest('.dropped-note'); n.classList.toggle('collapsed'); btn.innerText=n.classList.contains('collapsed')?'▲':'▼'; }
+    function dragWholeBubble(e){ if(isDrawingMode){e.preventDefault();return;} const b=e.target.closest('.ai-msg'); const c=b.cloneNode(true); c.querySelector('.chat-drag-handle')?.remove(); e.dataTransfer.setData("chatId",b.parentElement.id); e.dataTransfer.setData("text",c.innerText); }
+    function allowDrop(e){e.preventDefault();}
+    function drop(e){ e.preventDefault(); if(isDrawingMode)return; let txt=e.dataTransfer.getData("text")||e.dataTransfer.getData("text/plain"); if(!txt)return; const rect=e.currentTarget.getBoundingClientRect(); const n=document.createElement('div'); n.className='dropped-note'; n.innerHTML=`<div class="note-header"><strong>AI 메모</strong><span class="note-toggle-btn" onclick="toggleNote(this)">▼</span></div><div class="note-body" onclick="focusChat('${e.dataTransfer.getData("chatId")}')">${txt}</div>`; n.style.left=(e.clientX-rect.left-20)+'px'; n.style.top=(e.clientY-rect.top-20)+'px'; initNoteEvents(n); e.currentTarget.appendChild(n); }
     
-    // [터치 이벤트 핸들러]
-    function handleTouchStart(e) { e.preventDefault(); startDrawing(e); }
-    function handleTouchMove(e) { e.preventDefault(); draw(e); }
+    let dNote=null, dX=0, dY=0;
+    function initNoteEvents(n){ const h=n.querySelector('.note-header'); if(h){ h.addEventListener('mousedown',e=>{dNote=n; const r=n.getBoundingClientRect(); dX=e.clientX-r.left; dY=e.clientY-r.top; document.getElementById('trashCan').classList.add('active'); document.addEventListener('mousemove',moveNote); document.addEventListener('mouseup',dropNote); }); } }
+    function moveNote(e){ if(!dNote)return; const p=dNote.parentElement.getBoundingClientRect(); dNote.style.left=(e.clientX-p.left-dX)+'px'; dNote.style.top=(e.clientY-p.top-dY)+'px'; const t=document.getElementById('trashCan'); if(isColliding(dNote.getBoundingClientRect(),t.getBoundingClientRect())) t.classList.add('hover'); else t.classList.remove('hover'); }
+    function dropNote(){ if(dNote){ const t=document.getElementById('trashCan'); if(t.classList.contains('hover')) dNote.remove(); t.classList.remove('active','hover'); dNote=null; document.removeEventListener('mousemove',moveNote); document.removeEventListener('mouseup',dropNote); } }
+    function isColliding(r1,r2){ return !(r1.right<r2.left||r1.left>r2.right||r1.bottom<r2.top||r1.top>r2.bottom); }
 
-    // [Undo 기능: 상태 저장]
-    function saveHistory() {
-        const pageId = pages[currentPageIdx];
-        const history = canvasHistory[pageId];
-        // 현재 캔버스 상태를 이미지 데이터로 저장
-        history.push(ctx.getImageData(0, 0, currentCanvas.width, currentCanvas.height));
-        // 최대 단계 넘으면 오래된 것 삭제
-        if (history.length > maxHistoryStep) {
-            history.shift();
+    async function handleJokboAction(type, btn) {
+        const card=btn.closest('.jokbo-card'); const box=card.querySelector('.ai-response-box');
+        if(btn.classList.contains('active')){ box.classList.remove('show'); btn.classList.remove('active'); setTimeout(()=>{box.style.display='none'},200); return; }
+        card.querySelectorAll('.action-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+        box.style.display='block'; box.innerHTML='Analyzing...'; box.classList.add('show');
+        await new Promise(r=>setTimeout(r,600));
+        let res=""; const q=card.querySelector('.q-body').innerText;
+        if(q.includes('모건')) {
+            if(type==='answer') res=`**정답: ③ 수컷에서만 나타났다.**\n\n**상세 해설:**\n모건의 실험에서 흰 눈 유전자는 **X 염색체**에 위치한 열성 유전자입니다. F1 세대(붉은 눈 암수)를 교배했을 때, 수컷은 어머니로부터 열성 유전자를 물려받으면 Y 염색체에는 대응하는 유전자가 없어 바로 흰 눈이 발현됩니다.`;
+            else if(type==='point') res=`**🎯 출제 포인트:**\n1. **반성 유전(Sex-linked Inheritance)**의 개념 이해\n2. 멘델 법칙의 예외 상황인 **성 연관 유전** 파악`;
+            else if(type==='twin') res=`**🔄 쌍둥이 문제:**\n혈우병 보인자인 어머니와 정상인 아버지 사이에서 태어난 **아들**이 혈우병일 확률은?\n**정답:** 50%`;
+        } else if(q.includes('색맹')) {
+            if(type==='answer') res=`**정답: ② Hemizygous하기 때문**\n\n**해설:** 남성은 XY로 X 염색체가 하나뿐입니다. 이를 **반접합성(Hemizygous)** 상태라고 합니다. 여성은 보인자가 될 수 있지만, 남성은 유전자가 하나뿐이라 열성 형질이 바로 드러납니다.`;
+            else if(type==='point') res=`**🎯 출제 포인트:**\n'Hemizygous' 용어의 정의와 남성의 반성 유전 발현 빈도가 높은 이유를 묻는 문제입니다.`;
+        } else { res="**[AI]** 분석 결과입니다."; }
+        box.innerHTML=res.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+    }
+    function toggleJokboExpand(){ isJokboExpanded=!isJokboExpanded; const t=document.getElementById('tab-jokbo'); const b=document.getElementById('jokboExpandBtn'); if(isJokboExpanded){t.classList.add('expanded');b.innerText='접기';}else{t.classList.remove('expanded');b.innerText='전체 보기';} }
+    
+    function initGeminiChat(){
+        document.getElementById('sendBtn').onclick=async()=>{
+            const i=document.getElementById('userQueryInput'); const t=i.value.trim(); if(!t)return;
+            appendMsg(t,'user'); i.value=''; appendMsg('Thinking...','ai',true);
+            setTimeout(()=>{ document.querySelector('.ai-loading')?.parentElement.remove(); appendMsg(`[AI 답변] "${t}"에 대한 설명입니다. 관련 내용은 ${currentPageIdx+1}페이지를 참고하세요.`,'ai'); },1000);
         }
     }
-
-    // [Undo 기능: 실행 취소]
-    function undoLastAction() {
-        const pageId = pages[currentPageIdx];
-        const history = canvasHistory[pageId];
-        if (history.length > 0) {
-            // 가장 최근 상태를 꺼내서 다시 그린다
-            const lastState = history.pop();
-            ctx.putImageData(lastState, 0, 0);
-        } else {
-            // 히스토리가 비었으면 캔버스를 깨끗이 지운다 (초기 상태)
-            ctx.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
-        }
-    }
-
-
-    // --- [기존 기능 유지] ---
-
-    // [컨텐츠 동기화 매핑 (기존 동일)]
-    function syncRightPanel(pageNum) {
-        document.querySelectorAll('.jokbo-card').forEach(card => card.classList.remove('visible'));
-        document.querySelectorAll(`.p${pageNum}-item`).forEach(card => card.classList.add('visible'));
-
-        const syncMap = {
-            '13': { chat: 'chat-13-1', script: 'script-13-1', time: '09:30', progress: '10%' },
-            '14': { chat: 'chat-14-1', script: 'script-13-1', time: '09:40', progress: '15%' },
-            '15': { chat: 'chat-15-1', script: 'script-15-1', time: '09:45', progress: '25%' },
-            '16': { chat: 'chat-16-1', script: 'script-15-1', time: '09:55', progress: '30%' },
-            '17': { chat: 'chat-17-1', script: 'script-17-1', time: '10:10', progress: '40%' },
-            '18': { chat: 'chat-18-1', script: 'script-18-1', time: '10:25', progress: '50%' },
-            '19': { chat: 'chat-18-1', script: 'script-18-1', time: '10:30', progress: '55%' },
-            '20': { chat: 'chat-18-1', script: 'script-20-1', time: '10:40', progress: '65%' },
-            '21': { chat: 'chat-18-1', script: 'script-20-1', time: '10:50', progress: '75%' },
-            '22': { chat: 'chat-18-1', script: 'script-22-1', time: '11:00', progress: '90%' }
-        };
-
-        const target = syncMap[pageNum];
-        if (target) {
-            const activeTabId = document.querySelector('.tab-content.active').id;
-            let targetElId = null;
-            if (activeTabId === 'tab-chat') targetElId = target.chat;
-            else if (activeTabId === 'tab-script') targetElId = target.script;
-            
-            if (targetElId) {
-                const targetEl = document.getElementById(targetElId);
-                if (targetEl) {
-                    const container = document.querySelector('.tab-content-container');
-                    container.scrollTo({ top: targetEl.offsetTop - 20, behavior: 'smooth' });
-                    highlightEffect(targetEl);
-                }
-            }
-            const timeEl = document.getElementById('currentTime');
-            const progEl = document.getElementById('audioProgress');
-            if (timeEl && progEl) {
-                timeEl.innerText = target.time;
-                progEl.style.width = target.progress;
-            }
-        }
-    }
-
-    function highlightEffect(element) {
-        document.querySelectorAll('.active-context-bg').forEach(el => el.classList.remove('active-context-bg'));
-        element.classList.add('active-context-bg');
-        setTimeout(() => { element.classList.remove('active-context-bg'); }, 2000);
-    }
-
-    // [탭 전환 (기존 동일)]
-    function showTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-        const tabs = ['tab-chat', 'tab-jokbo', 'tab-script'];
-        document.querySelectorAll('.tab')[tabs.indexOf(tabId)].classList.add('active');
-
-        const player = document.getElementById('audioPlayer');
-        if (player) {
-            if (tabId === 'tab-script') player.classList.add('visible');
-            else player.classList.remove('visible');
-        }
-        
-        const currentPageNum = pages[currentPageIdx].replace('p', '');
-        syncRightPanel(currentPageNum);
-    }
-
-    // [Drag & Drop (수정됨: 필기 모드 아닐 때만 동작)]
-    function drag(ev) { 
-        if (isDrawingMode) { ev.preventDefault(); return; } // 필기 모드면 드래그 막음
-        ev.dataTransfer.setData("chatId", ev.target.id); ev.dataTransfer.setData("text", ev.target.innerText); 
-    }
-    function allowDrop(ev) { ev.preventDefault(); }
-    function drop(ev) {
-        ev.preventDefault();
-        if (isDrawingMode) return; // 필기 모드면 드롭 무시
-        const chatId = ev.dataTransfer.getData("chatId"); 
-        const tempDiv = document.createElement("div"); tempDiv.innerHTML = ev.dataTransfer.getData("text");
-        const cleanText = tempDiv.textContent || tempDiv.innerText || "";
-        const rect = ev.currentTarget.getBoundingClientRect();
-        
-        const note = document.createElement("div");
-        note.className = "dropped-note"; 
-        note.innerHTML = `📌 <strong>AI 메모</strong><br>${cleanText.substring(0, 30)}...`;
-        // 좌표 계산 보정 (상대 위치)
-        note.style.left = (ev.clientX - rect.left - 20) + "px"; 
-        note.style.top = (ev.clientY - rect.top - 20) + "px";
-        note.onclick = (e) => { e.stopPropagation(); focusChat(chatId); }; // 이벤트 버블링 방지
-        
-        ev.currentTarget.appendChild(note);
-    }
-
-    function focusChat(elementId) {
-        showTab('tab-chat');
-        const el = document.getElementById(elementId);
-        if(el) {
-            document.querySelector('.tab-content-container').scrollTo({ top: el.offsetTop - 80, behavior: 'smooth' });
-            highlightEffect(el);
-        }
+    function appendMsg(t,s,l=false){
+        const c=document.getElementById('chatContainer'); const d=document.createElement('div'); d.className='msg-group'; 
+        d.innerHTML=`<div class="bubble ${s}-msg ${l?'ai-loading':''}">${s==='ai'&&!l?`<div class="chat-drag-handle" draggable="true" ondragstart="dragWholeBubble(event)">::: (Drag)</div>`:''}${t}</div>`;
+        c.appendChild(d); c.scrollTop=c.scrollHeight;
     }
 </script>
 </body>
